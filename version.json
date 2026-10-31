@@ -1,4 +1,4 @@
 {
-  "version": "1.9.1",
-  "notes": "Night lighting now fits each room: a hanging lamp in the playroom, the moon, stars and a campfire on the beach, ceiling lights in the lab, a candy moon and glowing gumdrops in Candy land, a candle and moonlit window in the attic, glowing jellyfish underwater, and lava glow at the volcano. Space stays as it is."
+  "version": "1.10.0",
+  "notes": "Phone layout: on a phone the game switches to a compact portrait layout. The header shrinks to Gloop's name, coins and a Menu button that holds Games, Shop, Wardrobe and the rest. The four meters sit in one slim row, tools are a two-row strip you swipe sideways, and pop-up screens slide up from the bottom."
 }
