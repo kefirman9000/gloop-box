@@ -38,6 +38,10 @@ Or open `index.html` in any modern browser. No install or server needed.
 | Ramp | 40 | Slopes down toward Gloop. |
 | Seesaw | 70 | Drop something heavy on one end to launch the other. |
 | Critter | 80 | A butterfly or ladybug for Gloop to chase. |
+| Pillow | 20 | Soft landing spot. Slams on it do no damage. |
+| Banana peel | 25 | Gloop slips and spins if it steps on it. |
+| Bubble wand | 75 | Gloop floats in a bubble until it pops. |
+| Magnet | 85 | Hold to pull metal items, and Gloop in a chrome or gold skin. |
 
 ## Shop, games and trophies
 

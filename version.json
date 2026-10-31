@@ -1,4 +1,4 @@
 {
-  "version": "1.10.6",
-  "notes": "Fixed the row of buttons (Games, Shop, Clear room and the rest) running off the screen. On phones, tablets and narrow windows those buttons now live in the Menu, and on wider screens the row wraps onto a second line when needed."
+  "version": "1.11.0",
+  "notes": "Up and down buttons next to the tools on phones to scroll through them. Four new tools: Pillow (soft landings, no damage), Banana peel (Gloop slips and spins), Bubble wand (Gloop floats in a bubble until it pops) and Magnet (hold to pull anvils, bowling balls and crates, or Gloop itself if it wears a chrome or gold skin)."
 }
