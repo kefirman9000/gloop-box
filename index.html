@@ -249,13 +249,18 @@ const ACH=[
 ];
 const STAT_LABELS={slamKOs:'Slam knockouts',tickles:'Tickles',pets:'Pets',snacks:'Snacks eaten',flings:'Hard flings',kos:'Knockouts',bonks:'Bonks',booms:'Explosions',zaps:'Zaps',holes:'Black holes',flips:'Gravity flips',bestCombo:'Best combo',games:'Games played',buys:'Purchases',coinsEarned:'Coins earned'};
 const STARS=Array.from({length:90},()=>[Math.random(),Math.random(),Math.random()]);
+ICONS.storm='<path d="M7 15a4 4 0 0 1-.5-8 5.5 5.5 0 0 1 10.6 1.5A3.3 3.3 0 0 1 17 15z"/><path d="M12 13l-2 4h3l-2 4"/>';
+TOOLS.push({id:'storm',name:'Storm cloud',price:130,hint:'Tap to summon a storm cloud. It drifts over NAME and strikes with lightning. Metal attracts bolts.'});
+LINES.struck=['ZZZAP!','I\'m crispy!','My jelly is toasted!','*cough*','Not the lightning!'];
+ACH.push({id:'storm',name:'Lightning rod',desc:'Get NAME struck by lightning 10 times',stat:'strikes',goal:10,reward:25});
+STAT_LABELS.strikes='Lightning strikes';
 
 // ---------- state ----------
 let save={coins:10,unlocked:['hand','feather','snack','pin'],color:0,hat:false,name:'Gloop',muted:false,best:{},
   looks:[],hatId:null,eyes:null,pattern:null,trail:null,rooms:['night'],room:'night',stats:{},ach:[]};
 let combo=0,comboT=0,fearT=0,aim=null;
 const THROWABLE=['snack','ball','crate','firecracker','bowling','cactus'];
-let zap=null,holes=[],cactusTouch=false,game=null;
+let zap=null,holes=[],cactusTouch=false,game=null,clouds=[],bolts=[],charT=0,flashT=0;
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d'),stage=document.getElementById('stage');
 let W=600,H=400,DPR=1;
 const FLOOR_H=28;
@@ -334,7 +339,9 @@ const sfx={
   bonk(){tone(140,.12,'square',.09,-60)},
   zap(){for(let i=0;i<5;i++)setTimeout(()=>tone(1200+Math.random()*900,.04,'sawtooth',.04),i*45)},
   whoosh(){tone(300,.4,'sawtooth',.03,600)},
-  hole(){tone(70,1.2,'sine',.1,-20)}
+  hole(){tone(70,1.2,'sine',.1,-20)},
+  thunder(){tone(1800,.05,'square',.06,-1500);tone(55,1.4,'sawtooth',.13,-25);setTimeout(()=>tone(48,1.1,'triangle',.1,-10),120);},
+  rumble(){tone(40,1.6,'sine',.08,10)}
 };
 
 // ---------- UI ----------
@@ -384,7 +391,7 @@ function syncBars(){
 }
 
 // ---------- updates from GitHub ----------
-const VERSION='1.3.1';
+const VERSION='1.4.0';
 const RAW='https://raw.githubusercontent.com/kefirman9000/gloop-box/main/';
 const newer=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return(x[i]||0)>(y[i]||0);}return false;};
 let updHtml=null,updUrl=null;
@@ -622,6 +629,38 @@ function think(dt){
       for(const p of allBody()){const dx=p.x-bh.x,dy=p.y-bh.y,d=Math.hypot(dx,dy)||1;if(d<200)impulse(p,dx/d*6,dy/d*6);}
       for(let k=0;k<20;k++){const a=Math.random()*7,s=60+Math.random()*200;parts.push({k:'smoke',x:bh.x,y:bh.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,t:.6,r:3+Math.random()*5});}
     }
+  }
+  // storm clouds drift over Gloop, rain, and strike
+  charT-=dt;flashT-=dt;
+  for(let i=bolts.length-1;i>=0;i--){bolts[i].t-=dt;if(bolts[i].t<=0)bolts.splice(i,1);}
+  if(charT>0&&Math.random()<.25){const tp=pts.reduce((a,p)=>p.y<a.y?p:a);parts.push({k:'smoke',x:tp.x+(Math.random()-.5)*30,y:tp.y,vx:(Math.random()-.5)*20,vy:-50,t:.9,r:3+Math.random()*3});}
+  for(let i=clouds.length-1;i>=0;i--){
+    const cl=clouds[i];cl.t-=dt;cl.strikeT-=dt;
+    cl.x+=Math.max(-90*dt,Math.min(90*dt,c.x-cl.x));
+    if(Math.random()<.8)parts.push({k:'rain',x:cl.x+(Math.random()-.5)*90,y:cl.y+18,vx:-20,vy:420,t:.9});
+    if(cl.strikeT<=0&&cl.t>.3){
+      cl.strikeT=.9+Math.random()*.9;
+      const sx=cl.x,sy=cl.y+16;
+      // pick a target: metal pulls the bolt, then Gloop if it's under the cloud, then the ground
+      let tx=sx+(Math.random()-.5)*120,ty=floorY(),hitGloop=false,hitObj=null;
+      const metal=objs.find(o=>(o.type==='anvil'||o.type==='bowling'||o.type==='firecracker')&&Math.abs(o.x-sx)<140);
+      const top=pts.reduce((a,p)=>p.y<a.y?p:a);
+      if(metal){tx=metal.x;ty=metal.y;hitObj=metal;}
+      else if(Math.abs(c.x-sx)<100){tx=top.x;ty=top.y;hitGloop=true;}
+      bolts.push({path:makeBolt(sx,sy,tx,ty),t:.28});flashT=.14;shakeT=Math.max(shakeT,.2);sfx.thunder();
+      if(hitObj){
+        if(hitObj.type==='firecracker'){objs.splice(objs.indexOf(hitObj),1);explode(hitObj);}
+        else{// metal conducts into Gloop if it's touching
+          const near=allBody().some(p=>Math.hypot(p.x-hitObj.x,p.y-hitObj.y)<hitObj.r+10);
+          if(near){hitGloop=true;bolts.push({path:makeBolt(hitObj.x,hitObj.y,c.x,c.y),t:.2});}
+        }
+      }
+      if(hitGloop&&ko<=0){
+        hurt(12,true);zap={t:.5,tick:.15,x:tx,y:ty};charT=3.5;say('struck',true);stat('strikes');
+        for(const p of allBody())impulse(p,(Math.random()-.5)*4,2.5*gravSign);
+      }else if(!hitObj){for(let k=0;k<8;k++)parts.push({k:'smoke',x:tx,y:ty-4,vx:(Math.random()-.5)*160,vy:-Math.random()*90,t:.5,r:3+Math.random()*4});}
+    }
+    if(cl.t<=0)clouds.splice(i,1);
   }
   if(game)gameTick(dt,c);
   comboT-=dt;fearT-=dt;
@@ -956,6 +995,7 @@ cv.addEventListener('pointerdown',e=>{
     case 'cactus':spawn('cactus',p.x,p.y);break;
     case 'zapper':if(onBlob&&!zap&&ko<=0){zap={t:1,tick:0,x:p.x,y:p.y};combo=comboT>0?combo+1:1;comboT=1.5;statMax('bestCombo',combo);say('zap',true);sfx.zap();stat('zaps');}break;
     case 'rocket':{const o=spawn('rocket',p.x,p.y);const c=centroid(),dx=c.x-p.x,dy=c.y-p.y,d=Math.hypot(dx,dy)||1;o.px=o.x-dx/d*2;o.py=o.y-dy/d*2;sfx.whoosh();break;}
+    case 'storm':if(clouds.length<2){clouds.push({x:p.x,y:46,t:7,strikeT:1.1});sfx.rumble();}else toast('Two storms at once is the limit');break;
     case 'blackhole':if(holes.length<2){holes.push({x:p.x,y:p.y,t:4,tick:0});sfx.hole();stat('holes');}break;
   }
 });
@@ -1131,6 +1171,7 @@ function drawBlob(){
     for(let i=0;i<N;i++){const p=pts[i],m=mid(p,pts[(i+1)%N]);ctx.quadraticCurveTo(p.x,p.y,m.x,m.y);}
     ctx.closePath();
   }
+  if(charT>0){ctx.fillStyle='rgba(30,22,18,'+(.62*Math.min(1,charT/1.5))+')';ctx.fill();}
   ctx.lineWidth=3;ctx.strokeStyle=shade(col,-.32);ctx.stroke();
   // shine
   ctx.fillStyle='rgba(255,255,255,.35)';ctx.beginPath();ctx.ellipse(c.x-R*.38,c.y-R*.42,R*.18,R*.1,-.6,0,7);ctx.fill();
@@ -1246,6 +1287,7 @@ function drawParts(){
     else if(q.k==='smoke'){ctx.fillStyle='rgba(200,190,230,.5)';ctx.beginPath();ctx.arc(q.x,q.y,q.r*(1.6-q.t),0,7);ctx.fill();}
     else if(q.k==='spark'){ctx.fillStyle='#ffd166';ctx.fillRect(q.x-1.5,q.y-1.5,3,3);}
     else if(q.k==='crumb'){ctx.fillStyle='#d9a05b';ctx.fillRect(q.x-2,q.y-2,4,4);}
+    else if(q.k==='rain'){ctx.strokeStyle='rgba(170,200,255,.6)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(q.x,q.y);ctx.lineTo(q.x-2,q.y+9);ctx.stroke();}
     else if(q.k==='glit'){ctx.fillStyle='hsl('+q.h+',90%,75%)';const s=2+q.t*4;ctx.beginPath();ctx.moveTo(q.x,q.y-s);ctx.lineTo(q.x+s*.35,q.y);ctx.lineTo(q.x,q.y+s);ctx.lineTo(q.x-s*.35,q.y);ctx.closePath();ctx.fill();ctx.fillRect(q.x-s,q.y-.6,s*2,1.2);}
     else if(q.k==='mallet'){
       ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.a-Math.PI/2+(q.t-.125)*6);
@@ -1304,6 +1346,30 @@ function drawTrails(){
     }
   }
 }
+function makeBolt(x0,y0,x1,y1){
+  const out=[[x0,y0]],n=10,dx=x1-x0,dy=y1-y0,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len;
+  for(let i=1;i<n;i++){const t=i/n,j=(Math.random()-.5)*36*(1-Math.abs(t-.5));out.push([x0+dx*t+nx*j,y0+dy*t+ny*j]);}
+  out.push([x1,y1]);return out;
+}
+function drawClouds(){
+  for(const cl of clouds){
+    const a=Math.min(1,cl.t*2,(7-cl.t)*3);ctx.globalAlpha=a;
+    ctx.fillStyle='#3c3a52';
+    [[-34,6,22],[-12,-4,28],[16,-2,25],[38,8,19],[0,10,26]].forEach(([x,y,r])=>{ctx.beginPath();ctx.arc(cl.x+x,cl.y+y,r,0,7);ctx.fill();});
+    ctx.fillStyle='rgba(255,255,255,.08)';ctx.beginPath();ctx.arc(cl.x-12,cl.y-12,18,0,7);ctx.fill();
+    ctx.globalAlpha=1;
+  }
+}
+function drawBolts(){
+  for(const b of bolts){
+    const a=Math.min(1,b.t*6);
+    ctx.shadowColor='#bfe6ff';ctx.shadowBlur=22;ctx.lineJoin='round';ctx.lineCap='round';
+    for(const[w,col]of[[7,'rgba(160,210,255,'+(a*.6)+')'],[3,'rgba(255,255,255,'+a+')']]){
+      ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPath();b.path.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.stroke();
+    }
+    ctx.shadowBlur=0;
+  }
+}
 function drawHoles(){
   for(const bh of holes){
     const grow=Math.min(1,(4-bh.t)*3,bh.t*3),r=34*grow;
@@ -1337,7 +1403,8 @@ function frame(t){
   const dt=Math.min(.05,(t-last)/1000||FIX);last=t;acc+=dt;
   while(acc>=FIX){for(let s=0;s<SUB;s++)step(FIX/SUB);think(FIX);acc-=FIX;}
   ctx.save();if(shakeT>0){shakeT-=dt;const m=shakeT*22;ctx.translate((Math.random()-.5)*m,(Math.random()-.5)*m);}
-  drawRoom();drawHoles();drawTrails();for(const o of objs)drawObj(o);drawBlob();drawZap();drawParts();drawAim();ctx.restore();syncBars();
+  drawRoom();drawHoles();drawClouds();drawTrails();for(const o of objs)drawObj(o);drawBlob();drawZap();drawBolts();drawParts();drawAim();ctx.restore();
+  if(flashT>0){ctx.fillStyle='rgba(235,245,255,'+Math.min(.7,flashT*5)+')';ctx.fillRect(0,0,W,H);}syncBars();
   requestAnimationFrame(frame);
 }
 function start(data){

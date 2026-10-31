@@ -1,4 +1,4 @@
 {
-  "version": "1.3.1",
-  "notes": "Game rules for Gloop: in Snack Rain it slides straight under your cursor or finger, snacks fall slower, and arrow keys or A/D steer too. In Fetch it runs faster and stops sliding on the floor."
+  "version": "1.4.0",
+  "notes": "Storm cloud: summon a raincloud that drifts over Gloop and strikes with lightning. Thunder, screen flash, a charred smoking Gloop, metal that attracts bolts, and firecrackers that go off when hit. New trophy: Lightning rod."
 }
