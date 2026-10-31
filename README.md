@@ -19,6 +19,19 @@ Open `index.html` in any modern browser. No install or server needed.
 | Firecracker | 60 | Explodes after a short fuse. |
 | Anvil | 90 | Drops from the ceiling. Very heavy. |
 | Gravity | 120 | Flips gravity. |
+| Mallet | 40 | Bonks Gloop away from your tap. |
+| Bowling ball | 50 | Very heavy ball. |
+| Cactus | 55 | Stings on contact. |
+| Zapper | 70 | A one-second jolt. |
+| Rocket | 100 | Homes in on Gloop and explodes. |
+| Black hole | 150 | Pulls everything in for 4 seconds. |
+
+## Shop, games and trophies
+
+- **Shop:** hats (party, beanie, top hat, crown, propeller cap), eyewear, patterns, a sparkle trail, and four rooms.
+- **Games:** Keep-up, Snack Rain and Fetch. Every game pays at least 5 coins plus a score bonus.
+- **Trophies:** 22 goals that each pay coins, plus a stats page.
+- **Reactions:** hits chain into combos that pay coins, hard slams kick up dust and can knock Gloop out, and after being hurt Gloop backs away from weapons.
 
 Gloop earns coins on its own while its mood is above 60. If health hits zero it gets knocked out for a few seconds and then recovers.
 
