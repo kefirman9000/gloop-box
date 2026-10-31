@@ -87,3 +87,7 @@ Everything lives in `index.html`:
 - `step()` – verlet physics: blob springs, pressure, collisions
 - `think()` – mood, health, damage, hops, eating, coins
 - `drawBlob()`, `drawObj()`, `drawParts()` – rendering
+
+## Support Gloop Box
+
+Gloop Box is free to play. If Gloop has made you smile, you can help feed it new toys and tricks on **[GitHub Sponsors](https://github.com/sponsors/kefirman9000)**. Starring the repo and sharing it with friends helps too.
