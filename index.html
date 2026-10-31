@@ -50,7 +50,8 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px}
 .setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;border-radius:12px;background:var(--room);border:1px solid var(--line)}
 .setrow input[type=range]{flex:1;max-width:200px;accent-color:var(--gold)}
 .setrow input[type=checkbox]{width:18px;height:18px;accent-color:var(--gold)}
-.right{display:flex;align-items:center;gap:8px}
+.right{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px 8px;min-width:0;max-width:100%}
+header{max-width:100%}
 .coins{display:flex;align-items:center;gap:6px;font-weight:800;font-size:1.15rem;color:var(--gold);font-variant-numeric:tabular-nums;min-width:4.2em}
 .coins i{width:18px;height:18px;border-radius:50%;background:var(--gold);box-shadow:inset 0 -3px 0 #c98a1a;display:inline-block}
 .btn{font:inherit;font-weight:700;font-size:.85rem;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:10px;padding:6px 11px;cursor:pointer}
@@ -687,7 +688,7 @@ function syncBars(){
 }
 
 // ---------- updates from GitHub ----------
-const VERSION='1.10.5';
+const VERSION='1.10.6';
 const RAW='https://raw.githubusercontent.com/kefirman9000/gloop-box/main/';
 const newer=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return(x[i]||0)>(y[i]||0);}return false;};
 let updHtml=null,updUrl=null;
@@ -1820,7 +1821,8 @@ $('photoBtn').onclick=()=>togglePhoto(!paused);
 const ACTION_IDS=['gamesBtn','shopBtn','wardrobeBtn','trophyBtn','tricksBtn','photoBtn','undoBtn','clearBtn','muteBtn','settingsBtn','updateBtn'];
 function isPhone(){
   const coarse=window.matchMedia&&matchMedia('(pointer:coarse)').matches,ua=/Mobi|Android|iPhone|iPod/i.test(navigator.userAgent||'');
-  return (coarse||ua)&&Math.min(window.innerWidth,window.innerHeight)<820||window.innerWidth<560;
+  const any=window.matchMedia&&matchMedia('(any-pointer:coarse)').matches;
+  return ((coarse||any||ua||navigator.maxTouchPoints>0)&&Math.min(window.innerWidth,window.innerHeight)<900)||window.innerWidth<760;
 }
 function applyLayout(){
   const m=isPhone(),root=document.documentElement,sheet=$('menuSheet'),right=document.querySelector('.right');
@@ -1834,6 +1836,8 @@ cv.addEventListener('pointerdown',()=>{if(!$('menuSheet').hidden){$('menuSheet')
 window.addEventListener('resize',applyLayout);
 window.addEventListener('orientationchange',()=>setTimeout(applyLayout,200));
 applyLayout();
+window.addEventListener('load',applyLayout);
+setTimeout(applyLayout,300);
 $('shopBtn').onclick=()=>togglePanel(showShop);
 $('wardrobeBtn').onclick=()=>togglePanel(showWardrobe);
 $('trophyBtn').onclick=()=>togglePanel(showTrophies);
