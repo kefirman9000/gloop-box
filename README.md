@@ -2,7 +2,9 @@
 
 A single-file HTML sandbox toy. Gloop is a squishy jelly creature with soft-body physics, a mood and a health meter. Tickle, pet, feed, fling and pester it, earn coins, and unlock new tools.
 
-Open `index.html` in any modern browser. No install or server needed.
+**Play it online:** https://kefirman9000.github.io/gloop-box/
+
+Or open `index.html` in any modern browser. No install or server needed.
 
 ## Tools
 
