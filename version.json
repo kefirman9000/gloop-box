@@ -1,4 +1,4 @@
 {
-  "version": "1.7.2",
-  "notes": "Better snack catching: Gloop aims for where a toss comes down, lunges for close ones, and slurps nearby snacks into its mouth. It no longer runs from you while you hold a snack, and midair catches rebuild trust. The throw arc now stops where it lands, with a landing marker."
+  "version": "1.8.0",
+  "notes": "Wardrobe: 10 skins (glass, gummy, pixel, chrome, galaxy, lava, rainbow, ghost, gold), 7 new colors and 5 eye styles, many unlocked by trophies. 4 new rooms: Candy land, Spooky attic, Underwater (floaty physics) and Volcano. Colorful tool icons and a free 15-second trial of any locked tool. Tricks Gloop learns from snack rewards. Building: shelves, ramps and a seesaw catapult, with your layout saved. Undo, pinned favorite tools, Gloop reacting to the tool you pick, and phone vibration."
 }
