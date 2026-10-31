@@ -162,18 +162,18 @@ const ICONS={
 const TOOLS=[
  {id:'hand',name:'Hand',price:0,hint:'Drag NAME around and fling. Hover slowly to pet.'},
  {id:'feather',name:'Feather',price:0,hint:'Wiggle over NAME to tickle. Tickles can pay coins.'},
- {id:'snack',name:'Snack',price:0,cost:2,hint:'Tap to drop a snack (2 coins). Eating heals and cheers NAME up.'},
+ {id:'snack',name:'Snack',price:0,cost:2,hint:'Tap to drop a snack (2 coins), or drag the way you want to toss it and let go. Eating heals and cheers NAME up.'},
  {id:'pin',name:'Pin',price:0,hint:'Tap NAME to poke. It hurts.'},
- {id:'ball',name:'Ball',price:15,hint:'Tap to drop a bouncy ball.'},
+ {id:'ball',name:'Ball',price:15,hint:'Tap to drop a ball, or drag the way you want to throw it and let go.'},
  {id:'paint',name:'Paint',price:20,hint:'Tap NAME to change color.'},
- {id:'crate',name:'Crate',price:30,hint:'Tap to drop a wooden crate.'},
+ {id:'crate',name:'Crate',price:30,hint:'Tap to drop a crate, or drag the way you want to throw it and let go.'},
  {id:'hat',name:'Party hat',price:35,hint:'Tap NAME to put the hat on or take it off.'},
- {id:'firecracker',name:'Firecracker',price:60,hint:'Tap to light one. Stand back.'},
+ {id:'firecracker',name:'Firecracker',price:60,hint:'Tap to drop a lit firecracker, or drag the way you want to throw it and let go.'},
  {id:'anvil',name:'Anvil',price:90,hint:'Tap to drop an anvil from the ceiling.'},
  {id:'gravity',name:'Gravity',price:120,hint:'Tap anywhere to flip gravity.'},
  {id:'mallet',name:'Mallet',price:40,hint:'Tap near NAME to bonk it away from your tap.'},
- {id:'bowling',name:'Bowling ball',price:50,hint:'Tap to drop a very heavy ball.'},
- {id:'cactus',name:'Cactus',price:55,hint:'Tap to place a cactus. Touching it stings.'},
+ {id:'bowling',name:'Bowling ball',price:50,hint:'Tap to drop a very heavy ball, or drag the way you want to throw it and let go.'},
+ {id:'cactus',name:'Cactus',price:55,hint:'Tap to place a cactus, or drag the way you want to throw it and let go. Touching it stings.'},
  {id:'zapper',name:'Zapper',price:70,hint:'Tap NAME for a jolt of electricity.'},
  {id:'rocket',name:'Rocket',price:100,hint:'Tap to launch a homing rocket at NAME.'},
  {id:'blackhole',name:'Black hole',price:150,hint:'Tap to open a tiny black hole for a few seconds.'}
@@ -253,7 +253,8 @@ const STARS=Array.from({length:90},()=>[Math.random(),Math.random(),Math.random(
 // ---------- state ----------
 let save={coins:10,unlocked:['hand','feather','snack','pin'],color:0,hat:false,name:'Gloop',muted:false,best:{},
   looks:[],hatId:null,eyes:null,pattern:null,trail:null,rooms:['night'],room:'night',stats:{},ach:[]};
-let combo=0,comboT=0,fearT=0;
+let combo=0,comboT=0,fearT=0,aim=null;
+const THROWABLE=['snack','ball','crate','firecracker','bowling','cactus'];
 let zap=null,holes=[],cactusTouch=false,game=null;
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d'),stage=document.getElementById('stage');
 let W=600,H=400,DPR=1;
@@ -383,7 +384,7 @@ function syncBars(){
 }
 
 // ---------- updates from GitHub ----------
-const VERSION='1.2.0';
+const VERSION='1.3.0';
 const RAW='https://raw.githubusercontent.com/kefirman9000/gloop-box/main/';
 const newer=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return(x[i]||0)>(y[i]||0);}return false;};
 let updHtml=null,updUrl=null;
@@ -514,6 +515,7 @@ function step(h){
   }
   // integrate objects
   for(const o of objs){
+    if(o.held)continue;
     const vx=(o.x-o.px)*.998,vy=(o.y-o.py)*.998;o.px=o.x;o.py=o.y;o.x+=vx;o.y+=vy+g;
     if(grab&&grab.ref===o){o.x+=(ptr.x-o.x)*.5;o.y+=(ptr.y-o.y)*.5;}
     o.ang+=vx/o.r;
@@ -536,6 +538,7 @@ function step(h){
     limbConstraints(c);
     // blob + limbs vs objects
     for(const o of objs){
+      if(o.held)continue;
       for(const p of bodyAll){
         const dx=p.x-o.x,dy=p.y-o.y,d=Math.hypot(dx,dy);const min=o.r+3;
         if(d<min&&d>0){
@@ -546,18 +549,19 @@ function step(h){
           if(o.type==='cactus')cactusTouch=true;
           if(o.type==='snack'||o.type==='gold'||o.type==='chili')o.touched=true;
           if(o.type==='rocket')o.hit=true;
+          if(o.type==='ball')o.touched=true;
         }
       }
     }
     // object vs object
     for(let i=0;i<objs.length;i++)for(let j=i+1;j<objs.length;j++){
       const a=objs[i],b=objs[j],dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy),min=a.r+b.r;
-      if(d<min&&d>0){const ov=min-d,nx=dx/d,ny=dy/d,wa=b.m/(a.m+b.m),wb=a.m/(a.m+b.m);a.x-=nx*ov*wa;a.y-=ny*ov*wa;b.x+=nx*ov*wb;b.y+=ny*ov*wb;}
+      if(d<min&&d>0&&!a.held&&!b.held){const ov=min-d,nx=dx/d,ny=dy/d,wa=b.m/(a.m+b.m),wb=a.m/(a.m+b.m);a.x-=nx*ov*wa;a.y-=ny*ov*wa;b.x+=nx*ov*wb;b.y+=ny*ov*wb;}
     }
     // bounds
     for(const p of pts)bound(p,3,.25,.82,top,fy,L,Rr);
     for(const q of lnodes)bound(q,4,.2,.7,top,fy,L,Rr);
-    for(const o of objs)bound(o,o.r,o.b,o.f,top,fy,L,Rr);
+    for(const o of objs)if(!o.held)bound(o,o.r,o.b,o.f,top,fy,L,Rr);
   }
 }
 let frameHit=0;
@@ -694,7 +698,7 @@ function think(dt){
 const GAMES=[
  {id:'keepup',name:'Keep-up',desc:'Tap near NAME to bounce it. Don\'t let it touch the floor. It floats a little in this game.',unit:'bounces'},
  {id:'rain',name:'Snack Rain',desc:'Move your pointer to steer NAME. Catch gold snacks, dodge the chilis. 30 seconds.',unit:'snacks'},
- {id:'fetch',name:'Fetch',desc:'Throw the ball far with the Hand. NAME runs after it and brings it back. 45 seconds.',unit:'fetches'}
+ {id:'fetch',name:'Fetch',desc:'Grab the ball with the Hand and fling it. NAME runs after it and brings it back. 45 seconds.',unit:'fetches'}
 ];
 function steer(tx,dt){
   const c=centroid(),f=Math.max(-.5,Math.min(.5,(tx-c.x)*.006))*(game?.5:.25);
@@ -722,7 +726,7 @@ function startGame(id){
   if(ko>0){toast(nm()+' needs a moment to wake up');return;}
   $('gamePanel').hidden=true;
   const def=GAMES.find(g=>g.id===id);
-  game={id,def,score:0,t:id==='rain'?30:id==='fetch'?45:0,spawnT:.5,grace:1,held:0,armed:false,ball:null};
+  game={id,def,score:0,state:'wait',t2:0,carriedBy:false,t:id==='rain'?30:id==='fetch'?45:0,spawnT:.5,grace:1,held:0,armed:false,ball:null};
   holes=[];zap=null;objs=objs.filter(o=>o.type!=='rocket'&&o.type!=='firecracker');
   if(id==='keepup'){for(const q of allBody())q.py=q.y+6*gravSign;}
   if(id==='fetch'){tool='hand';buildTray();const c=centroid();game.ball=spawn('ball',Math.max(30,Math.min(W-30,c.x+90)),c.y-60);}
@@ -751,30 +755,40 @@ function gameTick(dt,c){
     }
   }
   if(g.id==='fetch'){
+    // States: waiting for a throw -> chasing -> carrying it back -> drops it at your side
     let b=g.ball;
-    if(!b||!objs.includes(b)){b=g.ball=spawn('ball',c.x,c.y-90);g.held=0;}
-    if(grab&&grab.ref===b)g.held=0;
-    const d=Math.hypot(b.x-c.x,b.y-c.y);
-    if(g.held>0){
-      const hand=limbs[0].nodes[limbs[0].nodes.length-1];
-      b.x=hand.x;b.y=hand.y-b.r*gravSign;b.px=b.x;b.py=b.y;
-      g.held-=dt;
-      if(g.held<=0){
-        const tx=ptr.x>-500?ptr.x:W/2,ty=ptr.y>-500?ptr.y:H/2,dx=tx-b.x,dy=ty-b.y,dd=Math.hypot(dx,dy)||1,sp=Math.min(5,dd/60);
-        b.px=b.x-dx/dd*sp;b.py=b.y-dy/dd*sp+1.5*gravSign;
+    if(!b||!objs.includes(b)){b=g.ball=spawn('ball',Math.max(30,Math.min(W-30,c.x+90)),c.y-60);g.state='wait';}
+    const carried=grab&&grab.ref===b;
+    if(carried){b.held=false;g.state='wait';g.carriedBy=true;}
+    const d=Math.hypot(b.x-c.x,b.y-c.y),speed=Math.hypot(b.x-b.px,b.y-b.py);
+    if(g.state==='wait'){
+      // armed once you've thrown it (let go of a moving ball) or it's far away
+      if(!carried&&(g.carriedBy&&speed>.8||d>160)){g.state='chase';g.carriedBy=false;}
+    }else if(g.state==='chase'){
+      if(!carried)steer(b.x,dt);
+      if(!carried&&(b.touched||d<R+b.r+14)){
+        g.score++;g.state='carry';g.t2=.7;b.held=true;mood=Math.min(100,mood+4);say('fetch',true);sfx.coin();wave=.8;
       }
-    }else{
-      if(d>120)g.armed=true;
-      if(g.armed&&!(grab&&grab.ref===b))steer(b.x,dt);
-      if(g.armed&&d<R+b.r+22&&!(grab&&grab.ref===b)){g.score++;g.armed=false;g.held=.8;mood=Math.min(100,mood+4);say('fetch',true);sfx.coin();wave=.8;}
+    }else if(g.state==='carry'){
+      const hand=limbs[0].nodes[limbs[0].nodes.length-1];
+      b.x=hand.x;b.y=hand.y-(b.r+2)*gravSign;b.px=b.x;b.py=b.y;
+      if(ptr.x>-500&&Math.abs(ptr.x-c.x)>90)steer(ptr.x,dt);
+      g.t2-=dt;
+      if(g.t2<=0&&(ptr.x<-500||Math.abs(ptr.x-c.x)<140||g.t2<-2.5)){
+        // set it down in front, toward you
+        const dir=Math.sign((ptr.x>-500?ptr.x:W/2)-c.x)||1;
+        b.held=false;b.x=Math.max(b.r+10,Math.min(W-b.r-10,c.x+dir*(R+b.r+8)));b.y=c.y-10*gravSign;
+        b.px=b.x-dir*.8;b.py=b.y+1.2*gravSign;g.state='wait';g.carriedBy=false;
+      }
     }
+    b.touched=false;
   }
   updHud();
 }
 function endGame(quit){
   const g=game;if(!g)return;game=null;
   $('hud').hidden=true;setHint();
-  objs=objs.filter(o=>o.type!=='gold'&&o.type!=='chili');
+  objs=objs.filter(o=>o.type!=='gold'&&o.type!=='chili');for(const o of objs)o.held=false;
   if(quit){toast('Game ended');return;}
   const reward=5+(g.id==='keepup'?g.score*2+(g.score>=10?10:0):g.id==='rain'?g.score*2:g.score*4);
   save.best=save.best||{};const prev=save.best[g.id]||0,isBest=g.score>prev;
@@ -891,6 +905,10 @@ cv.addEventListener('pointerdown',e=>{
     return;
   }
   if(game&&game.id==='rain')return;
+  if(THROWABLE.includes(tool)){
+    if(tool==='snack'&&save.coins<2){toast('Snacks cost 2 coins');return;}
+    aim={tool,x:p.x,y:p.y};return;
+  }
   switch(tool){
     case 'hand':{
       const o=objs.slice().reverse().find(o=>Math.hypot(o.x-p.x,o.y-p.y)<o.r+6);
@@ -952,6 +970,14 @@ cv.addEventListener('pointermove',e=>{
   }
 });
 function release(e){
+  if(aim){
+    // flick: the item leaves from the cursor, in the direction you dragged
+    const dx=ptr.x-aim.x,dy=ptr.y-aim.y,d=Math.hypot(dx,dy);
+    if(aim.tool==='snack'){save.coins-=2;persist();}
+    const o=spawn(aim.tool,d>10?ptr.x:aim.x,d>10?ptr.y:aim.y);
+    if(d>10){const v=throwVel(dx,dy);o.px=o.x-v.x;o.py=o.y-v.y;sfx.whoosh();}
+    aim=null;
+  }
   if(grab&&(grab.type==='pt'||grab.type==='limb')&&Math.hypot(vPrev.x,vPrev.y)>12)stat('flings');
   ptr.down=false;grab=null;try{cv.releasePointerCapture(e.pointerId);}catch(_){}}
 cv.addEventListener('pointerup',release);
@@ -1220,6 +1246,52 @@ function drawParts(){
   ctx.globalAlpha=1;
 }
 
+function throwVel(dx,dy){const k=.07,m=15;let vx=dx*k,vy=dy*k;const l=Math.hypot(vx,vy);if(l>m){vx*=m/l;vy*=m/l;}return{x:vx,y:vy};}
+function predict(x,y,vx,vy,r){
+  // same integration as the physics step, so the dotted arc matches the real flight
+  const h=FIX/SUB,g=G*gravSign*h*h,out=[],fy=floorY();let bounces=0;
+  for(let i=0;i<240;i++){
+    vx*=.998;vy=vy*.998+g;x+=vx;y+=vy;
+    if(x<8+r||x>W-8-r){vx=-vx*.6;x=Math.max(8+r,Math.min(W-8-r,x));}
+    if(y>fy-r||y<8+r){if(++bounces>1)break;y=Math.max(8+r,Math.min(fy-r,y));vy=-vy*.4;}
+    if(i%4===0)out.push([x,y]);
+  }
+  return out;
+}
+function drawArc(path,alpha,x0,y0){
+  ctx.strokeStyle='#f4effd';ctx.lineWidth=2;ctx.lineCap='round';ctx.lineJoin='round';
+  let px=x0,py=y0;
+  path.forEach(([x,y],i)=>{ctx.globalAlpha=alpha*(1-i/path.length*.7);ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(x,y);ctx.stroke();px=x;py=y;});
+  ctx.globalAlpha=1;
+}
+function drawAim(){
+  if(aim){
+    const r={snack:9,ball:16,crate:20,firecracker:10,bowling:19,cactus:18}[aim.tool]||12;
+    const dx=ptr.x-aim.x,dy=ptr.y-aim.y,d=Math.hypot(dx,dy);
+    ctx.globalAlpha=.6;drawObj(Object.assign({type:aim.tool,x:d>10?ptr.x:aim.x,y:d>10?ptr.y:aim.y,r,ang:0,fuse:1.6}));ctx.globalAlpha=1;
+    if(d>10){
+      ctx.fillStyle='rgba(244,239,253,.5)';ctx.beginPath();ctx.arc(aim.x,aim.y,3,0,7);ctx.fill();
+      const v=throwVel(dx,dy);drawArc(predict(ptr.x,ptr.y,v.x,v.y,r),.95,ptr.x,ptr.y);
+      const pw=Math.round(Math.hypot(v.x,v.y)/15*100);
+      ctx.font='800 12px Nunito, system-ui, sans-serif';ctx.fillStyle='#f4effd';ctx.fillText(pw+'%',ptr.x+10,ptr.y-10);
+    }
+  }else if(grab&&grab.type==='obj'){
+    const o=grab.ref,vx=o.x-o.px,vy=o.y-o.py;
+    if(Math.hypot(vx,vy)>1.2)drawArc(predict(o.x,o.y,vx,vy,o.r),.6,o.x,o.y);
+  }
+}
+function drawTrails(){
+  for(const o of objs){
+    const sp=Math.hypot(o.x-o.px,o.y-o.py);
+    o.trail=o.trail||[];
+    if(sp>2.5&&!o.held)o.trail.push([o.x,o.y]);else if(o.trail.length)o.trail.shift();
+    if(o.trail.length>14)o.trail.shift();
+    if(o.trail.length>1){
+      ctx.lineCap='round';
+      for(let i=1;i<o.trail.length;i++){const a=o.trail[i-1],b=o.trail[i];ctx.strokeStyle='rgba(244,239,253,'+(i/o.trail.length*.35)+')';ctx.lineWidth=o.r*1.1*(i/o.trail.length);ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();}
+    }
+  }
+}
 function drawHoles(){
   for(const bh of holes){
     const grow=Math.min(1,(4-bh.t)*3,bh.t*3),r=34*grow;
@@ -1253,7 +1325,7 @@ function frame(t){
   const dt=Math.min(.05,(t-last)/1000||FIX);last=t;acc+=dt;
   while(acc>=FIX){for(let s=0;s<SUB;s++)step(FIX/SUB);think(FIX);acc-=FIX;}
   ctx.save();if(shakeT>0){shakeT-=dt;const m=shakeT*22;ctx.translate((Math.random()-.5)*m,(Math.random()-.5)*m);}
-  drawRoom();drawHoles();for(const o of objs)drawObj(o);drawBlob();drawZap();drawParts();ctx.restore();syncBars();
+  drawRoom();drawHoles();drawTrails();for(const o of objs)drawObj(o);drawBlob();drawZap();drawParts();drawAim();ctx.restore();syncBars();
   requestAnimationFrame(frame);
 }
 function start(data){
