@@ -37,15 +37,19 @@ Or open `index.html` in any modern browser. No install or server needed.
 | Shelf | 30 | A platform things can land on. |
 | Ramp | 40 | Slopes down toward Gloop. |
 | Seesaw | 70 | Drop something heavy on one end to launch the other. |
+| Critter | 80 | A butterfly or ladybug for Gloop to chase. |
 
 ## Shop, games and trophies
 
 - **Wardrobe:** 10 skins, 14 colors, 5 eye styles, hats, eyewear, patterns and a sparkle trail. Some unlock through trophies and stats.
 - **Shop:** 8 rooms and every tool. Locked tools can be tried free for 15 seconds once a day.
+- **Growing up:** Gloop goes from Baby to Grown-up over hours of play.
+- **Day and night:** follows your clock (can be turned off in Settings).
+- **Collection:** 12 collectibles drop from games; two unlock a skin and an eye style.
 - **Tricks:** reward Gloop with a snack right after it shows off a trick. Three rewards and it learns it for good.
 - **Building:** shelves, ramps and a seesaw catapult. Your layout is saved. Undo removes the last thing you placed.
 - **Tool bar:** right-click or press and hold a tool to pin it to the front.
-- **Games:** Keep-up, Snack Rain, Hide and Seek, Copy Me, Bounce Tower, Target Toss and Fetch. Every game pays at least 5 coins plus a score bonus.
+- **Games:** Keep-up, Snack Rain, Hide and Seek, Copy Me, Bounce Tower, Target Toss, Gloop Goal, a weekly boss and Fetch. Every game pays at least 5 coins plus a score bonus.
 - **Trophies:** 22 goals that each pay coins, plus a stats page.
 - **Personality:** Gloop has trust, hunger, boredom and naps. Treat it well and it comes to greet you; treat it badly and it spits jelly at your cursor.
 - **Daily gift and challenge:** coins every day you visit, more for a streak, plus one daily challenge worth 60 coins.
