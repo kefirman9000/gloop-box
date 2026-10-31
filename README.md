@@ -91,3 +91,11 @@ Everything lives in `index.html`:
 ## Support Gloop Box
 
 Gloop Box is free to play. If Gloop has made you smile, you can help feed it new toys and tricks on **[GitHub Sponsors](https://github.com/sponsors/kefirman9000)**. Starring the repo and sharing it with friends helps too.
+
+## License and disclaimer
+
+Copyright © 2026 kefirman9000. All rights reserved. Gloop Box is free to play; see [LICENSE](LICENSE) for what is and isn't allowed.
+
+Gloop Box is provided **as is**, without warranty of any kind. Use it at your own risk; the author is not liable for any damage, data loss or other loss arising from its use.
+
+Found a security problem? Please report it privately; see [SECURITY.md](SECURITY.md).
