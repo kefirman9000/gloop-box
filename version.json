@@ -1,4 +1,4 @@
 {
-  "version": "1.10.4",
-  "notes": "Clear room button in the corner of the room (tap twice) that removes every item, prop and building piece. The Hand can now pick up items more easily and drag trampolines, fans, goo, shelves, ramps and seesaws to new spots."
+  "version": "1.10.5",
+  "notes": "Phones: menus, pop-up screens, the shop grid, game score bar, messages and the tool wheel now stay inside the screen instead of running off the edge."
 }

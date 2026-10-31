@@ -65,6 +65,21 @@ canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
 .zoomreset{position:absolute;right:12px;bottom:12px}
 .clearroom{position:absolute;left:10px;bottom:10px;padding:5px 10px;font-size:.78rem;background:rgba(38,32,68,.82)}
 .clearroom.arm{background:var(--ink);color:var(--room)}
+.msheet{max-height:calc(100% - 16px);overflow-y:auto;grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
+.msheet .btn,.gpanel .btn,.photobar .btn{min-width:0;white-space:normal;overflow-wrap:anywhere}
+.gpanel{overflow-x:hidden}
+.gpanel *{max-width:100%}
+.gcard{grid-template-columns:minmax(0,1fr) auto}
+.gcard b,.gcard small{min-width:0;overflow-wrap:anywhere}
+.toast{white-space:normal;max-width:calc(100% - 24px);text-align:center}
+.hud{max-width:calc(100% - 16px);white-space:normal;flex-wrap:wrap;justify-content:center;border-radius:16px}
+.photobar{max-width:calc(100% - 16px)}
+.update{max-width:calc(100% - 24px)}
+html.mobile .tgrid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
+html.mobile .gcard{padding:8px 10px}
+html.mobile .tabs .btn{padding:5px 9px;font-size:.8rem}
+html.mobile header .name{min-width:0}
+html.mobile .right{flex-shrink:0}
 .tabs{display:flex;gap:6px;flex-wrap:wrap}
 .tabs .btn[aria-selected="true"]{background:var(--ink);color:var(--room);border-color:var(--ink)}
 .glist{display:grid;gap:8px}
@@ -672,7 +687,7 @@ function syncBars(){
 }
 
 // ---------- updates from GitHub ----------
-const VERSION='1.10.4';
+const VERSION='1.10.5';
 const RAW='https://raw.githubusercontent.com/kefirman9000/gloop-box/main/';
 const newer=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return(x[i]||0)>(y[i]||0);}return false;};
 let updHtml=null,updUrl=null;
@@ -2510,8 +2525,8 @@ function drawStickers(){
 }
 function drawRadial(){
   if(!lp||!lp.open)return;
-  const list=radialTools(),n=list.length,cx=lp.sx,cy=lp.sy,r0=28,r1=96;
-  const dx=(ptr.sx??cx)-cx,dy=(ptr.sy??cy)-cy,sel=Math.hypot(dx,dy)>24?Math.floor(((Math.atan2(dy,dx)+Math.PI*2.5)%(Math.PI*2))/(Math.PI*2/n))%n:-1;
+  const list=radialTools(),n=list.length,r0=28,r1=96,cx=Math.max(r1+4,Math.min(W-r1-4,lp.sx)),cy=Math.max(r1+4,Math.min(H-r1-4,lp.sy));
+  const dx=(ptr.sx??lp.sx)-lp.sx,dy=(ptr.sy??lp.sy)-lp.sy,sel=Math.hypot(dx,dy)>24?Math.floor(((Math.atan2(dy,dx)+Math.PI*2.5)%(Math.PI*2))/(Math.PI*2/n))%n:-1;
   for(let i=0;i<n;i++){
     const a0=-Math.PI/2+i*Math.PI*2/n,a1=a0+Math.PI*2/n;
     ctx.fillStyle=i===sel?'rgba(244,239,253,.95)':'rgba(38,32,68,.92)';ctx.beginPath();ctx.arc(cx,cy,r1,a0,a1);ctx.arc(cx,cy,r0,a1,a0,true);ctx.closePath();ctx.fill();
