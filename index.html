@@ -488,7 +488,7 @@ function syncBars(){
 }
 
 // ---------- updates from GitHub ----------
-const VERSION='1.7.1';
+const VERSION='1.7.2';
 const RAW='https://raw.githubusercontent.com/kefirman9000/gloop-box/main/';
 const newer=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return(x[i]||0)>(y[i]||0);}return false;};
 let updHtml=null,updUrl=null;
@@ -820,7 +820,7 @@ function think(dt){
     steer(ptr.x,dt);if(Math.random()<dt*.15)say('friend');
   }
   // betrayed: fights back by spitting jelly globs at your cursor
-  if(!game&&ko<=0&&!sleeping&&save.trust<-30&&mood<30&&ptr.x>-500){
+  if(!game&&ko<=0&&!sleeping&&tool!=='snack'&&save.trust<-30&&mood<30&&ptr.x>-500){
     spitT-=dt;
     if(spitT<=0){
       spitT=6+Math.random()*5;
@@ -879,7 +879,8 @@ function think(dt){
   comboT-=dt;fearT-=dt;
   statMax('maxMood',Math.round(mood));
   // fear: after being hurt, Gloop backs away from a pointer that's holding a weapon
-  if(!game&&ko<=0&&!grab&&!sleeping&&(WEAPONS.includes(tool)||save.trust<-40)&&ptr.x>-500&&(fearT>0||mood<35||save.trust<-40)){
+  const offering=tool==='snack'||objs.some(o=>o.type==='snack'&&o.thrown);
+  if(!game&&ko<=0&&!grab&&!sleeping&&!offering&&(WEAPONS.includes(tool)||save.trust<-40)&&ptr.x>-500&&(fearT>0||mood<35||save.trust<-40)){
     const d=Math.hypot(ptr.x-c.x,ptr.y-c.y);
     if(d<240){
       steer(c.x-Math.sign(ptr.x-c.x||1)*260,dt);
@@ -912,11 +913,13 @@ function think(dt){
       // a snack in the air: run to where it will land and jump for it
       const fly=objs.find(o=>o.type==='snack'&&o.thrown&&!(grab&&grab.ref===o));
       if(fly&&frozen<=0&&!sleeping){
-        const path=predict(fly.x,fly.y,fly.x-fly.px,fly.y-fly.py,fly.r),land=path.length?path[path.length-1][0]:fly.x;
-        dash(land,5);eagerT=.3;
-        const above=gravSign>0?c.y-fly.y:fly.y-c.y,falling=(fly.y-fly.py)*gravSign>0;
-        if(grounded()&&catchCD<=0&&Math.abs(fly.x-c.x)<R*1.6&&above>R*.8&&above<260&&falling){
-          catchCD=.8;for(const q of allBody())impulse(q,Math.sign(fly.x-c.x)*.8,-3.3*gravSign);kick=.4;
+        // aim for where the snack comes down to mouth height, not where it would bounce
+        const land=catchPoint(fly,c);
+        dash(land,6);eagerT=.3;
+        const above=gravSign>0?c.y-fly.y:fly.y-c.y,falling=(fly.y-fly.py)*gravSign>0,hd=Math.abs(fly.x-c.x);
+        if(grounded()&&catchCD<=0&&hd<R*2.2&&above>-R*.2&&above<280&&(falling||above<130)){
+          catchCD=.6;const up=Math.max(1.8,Math.min(3.4,above/60+1.6));
+          for(const q of allBody())impulse(q,Math.max(-1.6,Math.min(1.6,(fly.x-c.x)*.03)),-up*gravSign);kick=.4;
         }
       }else{
         for(const o of objs)if(o.type==='snack'&&!(grab&&grab.ref===o)){const d=Math.abs(o.x-c.x);if(d<bd){bd=d;best=o;}}
@@ -938,13 +941,19 @@ function think(dt){
       }else if(mood<25&&Math.random()<.5)say('sad');
     }
     for(const o of objs)if(o.thrown&&o.type==='snack'&&(gravSign>0?o.y>=floorY()-o.r-1:o.y<=o.r+9))o.thrown=false;
+    if(ko<=0&&!sleeping&&frozen<=0)for(const o of objs){
+      if(o.type!=='snack'||!o.thrown||(grab&&grab.ref===o))continue;
+      const mx=c.x,my=c.y+12*gravSign,d=Math.hypot(o.x-mx,o.y-my);
+      if(d<R+75){const k=.18*(1-d/(R+75))+.05;o.x+=(mx-o.x)*k;o.y+=(my-o.y)*k;o.px+=(mx-o.px)*k*.9;o.py+=(my-o.py)*k*.9;eagerT=.3;
+        if(!o.slurp){o.slurp=1;tone(300,.18,'sine',.05,500);}}
+    }
     // eat snacks
     for(let i=objs.length-1;i>=0;i--){
       const o=objs[i];
       if(o.type==='snack'&&(o.touched||Math.hypot(o.x-c.x,o.y-c.y)<R+o.r+10)&&!(grab&&grab.ref===o)){
         objs.splice(i,1);mood=Math.min(100,mood+12);health=Math.min(100,health+10);sfx.nom();stat('snacks');trustAdd(2);hunger=Math.min(100,hunger+35);
         const airborne=gravSign>0?o.y<floorY()-o.r-3:o.y>o.r+11;
-        if(o.thrown&&airborne){say('catch',true);mood=Math.min(100,mood+6);stat('catches');addCoins(2,o.x,o.y-30);wave=1;
+        if(o.thrown&&airborne){say('catch',true);mood=Math.min(100,mood+6);trustAdd(4);fearT=0;stat('catches');addCoins(2,o.x,o.y-30);wave=1;
           parts.push({k:'txt',x:o.x,y:o.y-14,vx:0,vy:-60,t:1,text:'CATCH!',c:'#7ee0b5'});}
         else say('eat',true);
         for(let k=0;k<6;k++)parts.push({k:'crumb',x:o.x,y:o.y,vx:(Math.random()-.5)*120,vy:-60-Math.random()*80,t:.6});
@@ -974,6 +983,14 @@ const GAMES=[
  {id:'toss',name:'Target Toss',desc:'Drag the way you want to throw and let go to hit the floating targets. NAME cheers you on. 40 seconds.',unit:'hits'},
  {id:'fetch',name:'Fetch',desc:'Grab the ball with the Hand and fling it. NAME runs after it and brings it back. 45 seconds.',unit:'fetches'}
 ];
+function catchPoint(o,c){
+  const h=FIX/SUB,g=G*gravSign*h*h,mouthY=c.y+(gravSign>0?-R*.3:R*.3);let x=o.x,y=o.y,vx=o.x-o.px,vy=o.y-o.py;
+  for(let i=0;i<300;i++){vx*=.998;vy=vy*.998+g;x+=vx;y+=vy;
+    if(x<8||x>W-8)vx=-vx*.6;
+    if((vy*gravSign>0)&&(gravSign>0?y>=mouthY:y<=mouthY))return x;
+    if(gravSign>0?y>floorY():y<0)return x;}
+  return x;
+}
 function dash(tx,maxV){
   // direct horizontal drive for games: snappy, no hopping needed
   const c=centroid(),tv=Math.max(-maxV,Math.min(maxV,(tx-c.x)*.06));
@@ -1737,7 +1754,7 @@ function predict(x,y,vx,vy,r){
   for(let i=0;i<240;i++){
     vx*=.998;vy=vy*.998+g;x+=vx;y+=vy;
     if(x<8+r||x>W-8-r){vx=-vx*.6;x=Math.max(8+r,Math.min(W-8-r,x));}
-    if(y>fy-r||y<8+r){if(++bounces>1)break;y=Math.max(8+r,Math.min(fy-r,y));vy=-vy*.4;}
+    if(y>fy-r||y<8+r){y=Math.max(8+r,Math.min(fy-r,y));out.push([x,y]);out.landed=true;break;}
     if(i%4===0)out.push([x,y]);
   }
   return out;
@@ -1745,8 +1762,15 @@ function predict(x,y,vx,vy,r){
 function drawArc(path,alpha,x0,y0){
   ctx.strokeStyle='#f4effd';ctx.lineWidth=2;ctx.lineCap='round';ctx.lineJoin='round';
   let px=x0,py=y0;
-  path.forEach(([x,y],i)=>{ctx.globalAlpha=alpha*(1-i/path.length*.7);ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(x,y);ctx.stroke();px=x;py=y;});
+  path.forEach(([x,y],i)=>{ctx.globalAlpha=alpha*(1-i/path.length*.5);ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(x,y);ctx.stroke();px=x;py=y;});
   ctx.globalAlpha=1;
+  if(path.landed&&path.length){
+    const[lx,ly]=path[path.length-1],fy=floorY(),gy=gravSign>0?fy:8,pulse=1+Math.sin(simTime*8)*.12;
+    ctx.globalAlpha=alpha;ctx.strokeStyle='#ffc24b';ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.ellipse(lx,gy-2,16*pulse,5*pulse,0,0,7);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(lx-6,gy-8);ctx.lineTo(lx+6,gy+4);ctx.moveTo(lx+6,gy-8);ctx.lineTo(lx-6,gy+4);ctx.stroke();
+    ctx.globalAlpha=1;
+  }
 }
 function drawAim(){
   if(aim){

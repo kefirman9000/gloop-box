@@ -1,4 +1,4 @@
 {
-  "version": "1.7.1",
-  "notes": "Snack tossing: Gloop now runs to where a thrown snack will land, opens wide, and jumps to catch it in midair for 2 bonus coins. New trophy: Good catch."
+  "version": "1.7.2",
+  "notes": "Better snack catching: Gloop aims for where a toss comes down, lunges for close ones, and slurps nearby snacks into its mouth. It no longer runs from you while you hold a snack, and midair catches rebuild trust. The throw arc now stops where it lands, with a landing marker."
 }
