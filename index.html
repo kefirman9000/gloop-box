@@ -95,6 +95,13 @@ html.mobile .right{flex-shrink:0}
   padding:7px 14px;border-radius:999px;pointer-events:none;white-space:nowrap}
 .traywrap{display:flex;gap:6px;min-width:0;align-items:stretch}
 .traywrap .tray{flex:1;min-width:0}
+.quickbar{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;z-index:5}
+.qbtn{display:grid;justify-items:center;gap:2px;width:56px;padding:7px 2px 5px;border-radius:14px;border:1px solid var(--line);background:rgba(38,32,68,.86);color:var(--ink);font:inherit;font-size:.62rem;font-weight:800;cursor:pointer}
+.qbtn:hover{background:var(--chip-hi)}
+.qbtn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.qbtn svg{color:var(--gold)}
+html:not(.mobile) .quickbar{right:12px}
+@media (max-height:520px){.qbtn span{display:none}.qbtn{width:44px;padding:8px 2px}}
 .trayarrows{display:none;flex-direction:column;gap:6px;flex:0 0 44px}
 .trayarrows .btn{flex:1;padding:0;font-size:1rem;min-height:40px}
 .trayarrows .btn:disabled{opacity:.35}
@@ -205,6 +212,13 @@ html.mobile .photobar{bottom:8px}
     <div class="toast" id="toast" hidden></div>
     <div class="hud" id="hud" hidden><span id="hudName"></span><span id="hudScore"></span><span id="hudTime"></span><button class="btn" id="hudQuit">Quit</button></div>
     <div class="gpanel" id="gamePanel" hidden></div>
+    <div class="quickbar" id="quickBar">
+      <button class="qbtn" data-target="gamesBtn" aria-label="Games"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="10" rx="4"/><path d="M8 10v4M6 12h4"/><circle cx="16" cy="11" r="1"/><circle cx="18" cy="13" r="1"/></svg><span>Games</span></button>
+      <button class="qbtn" data-target="shopBtn" aria-label="Shop"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 12H6z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg><span>Shop</span></button>
+      <button class="qbtn" data-target="wardrobeBtn" aria-label="Wardrobe"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4l3 2 3-2 5 3-2 4-2-1v10H8V10l-2 1-2-4z"/></svg><span>Style</span></button>
+      <button class="qbtn" data-target="trophyBtn" aria-label="Trophies"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8"/></svg><span>Trophies</span></button>
+      <button class="qbtn" data-target="undoBtn" aria-label="Undo"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg><span>Undo</span></button>
+    </div>
     <div class="msheet" id="menuSheet" hidden></div>
     <div class="photobar" id="photoBar" hidden></div>
     <button class="btn zoomreset" id="zoomReset" hidden>Reset zoom</button>
@@ -711,7 +725,7 @@ function syncBars(){
 }
 
 // ---------- updates from GitHub ----------
-const VERSION='1.11.0';
+const VERSION='1.11.1';
 const RAW='https://raw.githubusercontent.com/kefirman9000/gloop-box/main/';
 const newer=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return(x[i]||0)>(y[i]||0);}return false;};
 let updHtml=null,updUrl=null;
@@ -1489,7 +1503,7 @@ function startGame(id){
   if(id==='fetch'){tool='hand';buildTray();const c=centroid();game.ball=spawn('ball',Math.max(30,Math.min(W-30,c.x+90)),c.y-60);}
   say('game',true);wave=1;stat('games');
   $('hint').textContent=def.desc.replace('NAME',nm());
-  $('hudName').textContent=def.name;$('hud').hidden=false;updHud();
+  $('hudName').textContent=def.name;$('hud').hidden=false;$('quickBar').hidden=true;updHud();
 }
 function newTarget(){return{x:W*(.3+Math.random()*.6),y:60+Math.random()*(floorY()-180),r:22+Math.random()*10,ph:Math.random()*6,sp:.5+Math.random()};}
 function keepInside(){if(!pts.length)return;const c=centroid(),fy=floorY(),nx=Math.max(R+10,Math.min(W-R-10,c.x)),ny=Math.min(c.y,fy-R-2);if(nx!==c.x||ny!==c.y)moveGloop(nx,ny);
@@ -1702,7 +1716,7 @@ function gameTick(dt,c){
 }
 function endGame(quit){
   const g=game;if(!g)return;game=null;
-  $('hud').hidden=true;setHint();
+  $('hud').hidden=true;$('quickBar').hidden=false;setHint();
   objs=objs.filter(o=>o.type!=='gold'&&o.type!=='chili'&&!o.fromBoss);for(const o of objs)o.held=false;
   if(g.id==='course'){plats=plats.slice(0,g.platN0);fixtures=fixtures.slice(0,g.fixN0);saveLayout();}
   if(g.id==='boss')boss=null;
@@ -1849,7 +1863,7 @@ function buildPhotoBar(){
   bar.append(undo,saveB,done);
 }
 function togglePhoto(on){
-  paused=on;$('photoBar').hidden=!on;$('photoBtn').textContent=on?'Exit photo':'Photo';
+  paused=on;$('photoBar').hidden=!on;$('quickBar').hidden=on;$('photoBtn').textContent=on?'Exit photo':'Photo';
   if(on){$('gamePanel').hidden=true;buildPhotoBar();$('hint').textContent='Photo mode: the room is paused. Tap to place stickers.';}
   else{stickers=[];setHint();}
 }
@@ -1861,6 +1875,7 @@ function savePhoto(){
   }catch(e){toast('Saving pictures works when you open the game from GitHub or the file');}
 }
 $('photoBtn').onclick=()=>togglePhoto(!paused);
+for(const q of document.querySelectorAll('.qbtn'))q.onclick=()=>{const t=$(q.dataset.target);if(t)t.click();};
 function syncTrayArrows(){const t=$('tray'),up=$('trayUp'),dn=$('trayDown');up.disabled=t.scrollTop<=2;dn.disabled=t.scrollTop+t.clientHeight>=t.scrollHeight-2;}
 $('trayUp').onclick=()=>{const t=$('tray');t.scrollBy({top:-(t.clientHeight*.8),behavior:'smooth'});};
 $('trayDown').onclick=()=>{const t=$('tray');t.scrollBy({top:t.clientHeight*.8,behavior:'smooth'});};

@@ -1,4 +1,4 @@
 {
-  "version": "1.11.0",
-  "notes": "Up and down buttons next to the tools on phones to scroll through them. Four new tools: Pillow (soft landings, no damage), Banana peel (Gloop slips and spins), Bubble wand (Gloop floats in a bubble until it pops) and Magnet (hold to pull anvils, bowling balls and crates, or Gloop itself if it wears a chrome or gold skin)."
+  "version": "1.11.1",
+  "notes": "Quick buttons on the right side of the room for Games, Shop, Style (Wardrobe), Trophies and Undo, so you don't have to open the Menu. They hide during games and photo mode."
 }
