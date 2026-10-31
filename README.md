@@ -33,6 +33,7 @@ Or open `index.html` in any modern browser. No install or server needed.
 | Goo puddle | 35 | Sticky floor that slows things down. |
 | Potion | 90 | Shrink, grow, bouncy or liquid for 12 seconds. |
 | Weather | 100 | Cycles snow, heat wave, wind and clear skies. |
+| Pip | 150 | A little jelly pal. Tap Pip to switch between friend and rival. |
 
 ## Shop, games and trophies
 
@@ -41,6 +42,9 @@ Or open `index.html` in any modern browser. No install or server needed.
 - **Trophies:** 22 goals that each pay coins, plus a stats page.
 - **Personality:** Gloop has trust, hunger, boredom and naps. Treat it well and it comes to greet you; treat it badly and it spits jelly at your cursor.
 - **Daily gift and challenge:** coins every day you visit, more for a streak, plus one daily challenge worth 60 coins.
+- **Photo mode:** pause the room, add stickers and save a picture.
+- **Music and settings:** room music, volume, calm mode and a reset button.
+- **Phones:** pinch to zoom, and press and hold on an empty spot for a menu of your recent tools.
 - **Item reactions:** snow freezes goo, lightning or the zapper electrifies it, firecrackers set off crates, and black holes eat items.
 - **Reactions:** hits chain into combos that pay coins, hard slams kick up dust and can knock Gloop out, and after being hurt Gloop backs away from weapons.
 
