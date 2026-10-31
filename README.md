@@ -32,14 +32,16 @@ Or open `index.html` in any modern browser. No install or server needed.
 | Fan | 55 | Blows toward Gloop. |
 | Goo puddle | 35 | Sticky floor that slows things down. |
 | Potion | 90 | Shrink, grow, bouncy or liquid for 12 seconds. |
+| Weather | 100 | Cycles snow, heat wave, wind and clear skies. |
 
 ## Shop, games and trophies
 
 - **Shop:** hats (party, beanie, top hat, crown, propeller cap), eyewear, patterns, a sparkle trail, and four rooms.
-- **Games:** Keep-up, Snack Rain, Target Toss and Fetch. Every game pays at least 5 coins plus a score bonus.
+- **Games:** Keep-up, Snack Rain, Hide and Seek, Copy Me, Bounce Tower, Target Toss and Fetch. Every game pays at least 5 coins plus a score bonus.
 - **Trophies:** 22 goals that each pay coins, plus a stats page.
 - **Personality:** Gloop has trust, hunger, boredom and naps. Treat it well and it comes to greet you; treat it badly and it spits jelly at your cursor.
-- **Daily gift:** coins every day you visit, more for a streak.
+- **Daily gift and challenge:** coins every day you visit, more for a streak, plus one daily challenge worth 60 coins.
+- **Item reactions:** snow freezes goo, lightning or the zapper electrifies it, firecrackers set off crates, and black holes eat items.
 - **Reactions:** hits chain into combos that pay coins, hard slams kick up dust and can knock Gloop out, and after being hurt Gloop backs away from weapons.
 
 Gloop earns coins on its own while its mood is above 60. If health hits zero it gets knocked out for a few seconds and then recovers.

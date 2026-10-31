@@ -287,6 +287,32 @@ ACH.push(
  {id:'streak',name:'Daily visitor',desc:'Visit 5 days in a row',stat:'streak',goal:5,reward:40},
  {id:'spat',name:'Payback',desc:'Get hit by NAME fighting back',stat:'spitHits',goal:1,reward:5}
 );
+ICONS.weather='<circle cx="8" cy="8" r="3"/><path d="M8 2v1.5M2 8h1.5M3.8 3.8l1 1M12.2 3.8l-1 1M10 17a3 3 0 0 1 .5-6 4 4 0 0 1 7.7 1.2A2.4 2.4 0 0 1 18 17z"/><path d="M11 20l-.5 1.5M15 20l-.5 1.5"/>';
+TOOLS.push({id:'weather',name:'Weather',price:100,hint:'Tap anywhere to change the weather: snow, heat wave, wind, then clear skies.'});
+LINES.cold=['Brrr...','So c-c-cold!'];
+LINES.frozen=['*frozen solid*'];
+LINES.hot=LINES.hot.concat(['I\'m melting...','Too hot!']);
+LINES.found=['You found me!','Aww, caught!'];
+LINES.hide=['Ready or not!','Can\'t find me!'];
+LINES.challenge=['We did it!'];
+ACH.push(
+ {id:'icecube',name:'Ice cube',desc:'Let NAME freeze solid in the snow',stat:'freezes',goal:1,reward:15},
+ {id:'chem',name:'Chemist',desc:'Trigger 5 item reactions',stat:'reactions',goal:5,reward:25},
+ {id:'hide',name:'Seeker',desc:'Find NAME 8 times in one Hide and Seek game',stat:'best_hide',goal:8,reward:30},
+ {id:'simon',name:'Copycat',desc:'Reach round 8 in Copy Me',stat:'best_simon',goal:8,reward:30},
+ {id:'tower',name:'Skyscraper',desc:'Get NAME 30 high in Bounce Tower',stat:'best_tower',goal:30,reward:30},
+ {id:'daily',name:'Challenger',desc:'Finish 5 daily challenges',stat:'dailies',goal:5,reward:50}
+);
+const DAILY=[
+ {text:'Tickle NAME 20 times',stat:'tickles',goal:20},{text:'Feed NAME 5 snacks',stat:'snacks',goal:5},
+ {text:'Bounce NAME on a trampoline 10 times',stat:'bounces',goal:10},{text:'Strike NAME with lightning 3 times',stat:'strikes',goal:3},
+ {text:'Pet NAME 15 times',stat:'pets',goal:15},{text:'Play 3 mini-games',stat:'games',goal:3},
+ {text:'Set off 5 explosions',stat:'booms',goal:5},{text:'Give NAME 3 potions',stat:'potions',goal:3},
+ {text:'Fling NAME hard 8 times',stat:'flings',goal:8},{text:'Trigger 2 item reactions',stat:'reactions',goal:2},
+ {text:'Bonk NAME 10 times with the mallet',stat:'bonks',goal:10}
+];
+let weather='clear',coldT=0,frozen=0;
+Object.assign(STAT_LABELS,{freezes:'Times frozen',reactions:'Item reactions',dailies:'Daily challenges'});
 Object.assign(STAT_LABELS,{bounces:'Trampoline bounces',potions:'Potions given',spitHits:'Times NAME got you',streak:'Best daily streak'});
 let hunger=80,idleT=0,sleeping=false,fixtures=[],potion=null,potionIdx=0,scale=1,spitT=8,splats=[],trampHit=false,trampCD=0;
 function trustAdd(v){save.trust=Math.max(-100,Math.min(100,(save.trust||0)+v));statMax('maxTrust',Math.round(save.trust));}
@@ -431,7 +457,7 @@ function syncBars(){
 }
 
 // ---------- updates from GitHub ----------
-const VERSION='1.5.0';
+const VERSION='1.6.0';
 const RAW='https://raw.githubusercontent.com/kefirman9000/gloop-box/main/';
 const newer=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return(x[i]||0)>(y[i]||0);}return false;};
 let updHtml=null,updUrl=null;
@@ -468,7 +494,13 @@ function say(kind,force){if(!force&&lineCD>0)return;bubble={text:pick(LINES[kind
 // ---------- stats & achievements ----------
 function stat(k,inc=1){save.stats[k]=(save.stats[k]||0)+inc;checkAch();persist();}
 function statMax(k,v){if(v>(save.stats[k]||0)){save.stats[k]=v;checkAch();persist();}}
+function checkDaily(){
+  const d=save.daily;if(!d||d.done)return;
+  const ch=DAILY[d.i%DAILY.length];
+  if((save.stats[ch.stat]||0)-d.base>=ch.goal){d.done=true;save.coins+=60;save.stats.dailies=(save.stats.dailies||0)+1;sfx.buy();toast('Daily challenge done! +60 coins');}
+}
 function checkAch(){
+  checkDaily();
   for(const a of ACH){
     if(save.ach.includes(a.id))continue;
     if((save.stats[a.stat]||0)>=a.goal){
@@ -521,6 +553,9 @@ function spawn(type,x,y){
 }
 function allBody(){return pts.concat(limbNodes());}
 function explode(o,RAD=170,dmgMax=28){
+  const crates=objs.filter(q=>q.type==='crate'&&Math.hypot(q.x-o.x,q.y-o.y)<o.r+q.r+30);
+  if(crates.length&&o.type==='firecracker'){RAD*=1.45;dmgMax*=1.4;objs=objs.filter(q=>!crates.includes(q));stat('reactions');toast('Crate bomb!');
+    for(const q of crates)for(let i=0;i<8;i++){const a=Math.random()*7,sp=120+Math.random()*240;parts.push({k:'plank',x:q.x,y:q.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-120,t:1.2,rot:Math.random()*6});}}
   sfx.boom();stat('booms');
   for(const p of allBody()){const dx=p.x-o.x,dy=p.y-o.y,d=Math.hypot(dx,dy)||1;if(d<RAD){const s=(1-d/RAD)*16;impulse(p,dx/d*s,dy/d*s-s*.3);}}
   for(const q of objs){if(q===o)continue;const dx=q.x-o.x,dy=q.y-o.y,d=Math.hypot(dx,dy)||1;if(d<RAD){const s=(1-d/RAD)*18/Math.sqrt(q.m);q.px-=dx/d*s;q.py-=dy/d*s+s*.3;}}
@@ -534,7 +569,7 @@ function explode(o,RAD=170,dmgMax=28){
 function step(h){
   const g=G*gravSign*h*h*(game&&game.id==='keepup'?.5:1), fy=floorY(), top=8, L=8, Rr=W-8;
   const liquid=potion&&potion.kind==='liquid';
-  const pressK=liquid?.03:ko>0?.18:(.45+.4*health/100);
+  const pressK=liquid?.03:ko>0?.18:(.45+.4*health/100)*(weather==='heat'?.55:1);
   // integrate blob
   for(const p of pts){const vx=(p.x-p.px)*.996,vy=(p.y-p.py)*.996;p.px=p.x;p.py=p.y;p.x+=vx;p.y+=vy+g;}
   for(const L of limbs)for(const q of L.nodes){const vx=(q.x-q.px)*.99,vy=(q.y-q.py)*.99;q.px=q.x;q.py=q.y;q.x+=vx;q.y+=vy+g;}
@@ -582,7 +617,7 @@ function step(h){
       const p=pts[i],dx=p.x-c.x,dy=p.y-c.y,d=Math.hypot(dx,dy)||1;
       const push=diff*pressK*R*.22;
       p.x+=dx/d*push;p.y+=dy/d*push;
-      const k=ko>0||liquid?.002:.018;const s=(R-d)*k;p.x+=dx/d*s;p.y+=dy/d*s;
+      const k=frozen>0?.25:ko>0||liquid?.002:.018;const s=(R-d)*k;p.x+=dx/d*s;p.y+=dy/d*s;
     }
     limbConstraints(c);
     // blob + limbs vs objects
@@ -614,6 +649,8 @@ function step(h){
     for(const o of objs)if(!o.held)bound(o,o.r,o.b,o.f,top,fy,L,Rr);
   }
   applyFixtures();
+  if(weather==='wind'){for(const p of allBody())p.px-=.014;for(const o of objs)if(!o.held)o.px-=.03/Math.sqrt(o.m);}
+  if(frozen>0){for(const p of allBody()){p.px=p.x-(p.x-p.px)*.97;}}
 }
 let frameHit=0;
 function link(a,b,rest,k){
@@ -642,7 +679,7 @@ function think(dt){
     vPrev=v;
   }
   cPrev=c;
-  if(frameHit>7&&hitCD<=0){hurt(Math.round(Math.min(35,(frameHit-7)*.9+2)),frameHit>20);hitCD=.4;}
+  if(frameHit>7&&hitCD<=0&&!game){hurt(Math.round(Math.min(35,(frameHit-7)*.9+2)),frameHit>20);hitCD=.4;}
   frameHit=0;
   if(cactusTouch&&hitCD<=0&&ko<=0){hurt(4);say('prickly',true);hitCD=.5;}
   cactusTouch=false;
@@ -666,9 +703,11 @@ function think(dt){
   // black holes
   for(let i=holes.length-1;i>=0;i--){
     const bh=holes[i];bh.t-=dt;bh.tick-=dt;
+    for(let j=objs.length-1;j>=0;j--){const o=objs[j];if(!o.held&&Math.hypot(o.x-bh.x,o.y-bh.y)<16){objs.splice(j,1);if(grab&&grab.ref===o)grab=null;bh.ate=(bh.ate||0)+1;if(bh.ate===1)stat('reactions');}}
     if(Math.hypot(c.x-bh.x,c.y-bh.y)<70&&bh.tick<=0){bh.tick=.4;hurt(3);if(Math.random()<.4)say('hole',true);}
     if(bh.t<=0){
       holes.splice(i,1);sfx.pop();
+      if(bh.ate){parts.push({k:'txt',x:bh.x,y:bh.y-20,vx:0,vy:-40,t:1.2,text:'*burp* ('+bh.ate+' eaten)',c:'#c49bff'});for(let k=0;k<bh.ate*4;k++){const a=Math.random()*7,sp=100+Math.random()*200;parts.push({k:'star',x:bh.x,y:bh.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,t:.8});}}
       for(const p of allBody()){const dx=p.x-bh.x,dy=p.y-bh.y,d=Math.hypot(dx,dy)||1;if(d<200)impulse(p,dx/d*6,dy/d*6);}
       for(let k=0;k<20;k++){const a=Math.random()*7,s=60+Math.random()*200;parts.push({k:'smoke',x:bh.x,y:bh.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,t:.6,r:3+Math.random()*5});}
     }
@@ -701,7 +740,8 @@ function think(dt){
       if(hitGloop&&ko<=0){
         hurt(12,true);zap={t:.5,tick:.15,x:tx,y:ty};charT=3.5;say('struck',true);stat('strikes');
         for(const p of allBody())impulse(p,(Math.random()-.5)*4,2.5*gravSign);
-      }else if(!hitObj){for(let k=0;k<8;k++)parts.push({k:'smoke',x:tx,y:ty-4,vx:(Math.random()-.5)*160,vy:-Math.random()*90,t:.5,r:3+Math.random()*4});}
+      }else if(!hitObj){const f=fixtures.find(f=>f.type==='goo'&&Math.abs(tx-f.x)<f.w/2+40);if(f){f.charged=5;stat('reactions');toast('Lightning electrified the goo!');}
+        for(let k=0;k<8;k++)parts.push({k:'smoke',x:tx,y:ty-4,vx:(Math.random()-.5)*160,vy:-Math.random()*90,t:.5,r:3+Math.random()*4});}
     }
     if(cl.t<=0)clouds.splice(i,1);
   }
@@ -718,6 +758,28 @@ function think(dt){
     else if(idleT>25&&!sleeping){
       if(Math.random()<dt*.25){const o=objs[(Math.random()*objs.length)|0];if(o){steer(o.x,dt*4);if(Math.random()<.3)say('bored');}else if(Math.random()<.3)say('bored');}
     }
+  }
+  // weather
+  if(weather==='snow'){
+    if(Math.random()<.9)parts.push({k:'snow',x:Math.random()*W,y:-4,vx:-12+Math.random()*24,vy:35+Math.random()*30,t:8});
+    if(ko<=0&&!game){coldT+=dt;if(coldT>6&&Math.random()<dt*.2)say('cold');
+      if(coldT>14&&frozen<=0){frozen=5;coldT=4;say('frozen',true);stat('freezes');sfx.zap();}}
+    for(const f of fixtures)if(f.type==='goo'&&!f.ice){f.ice=true;stat('reactions');toast('The goo froze into ice!');}
+  }else coldT=Math.max(0,coldT-dt*2);
+  if(weather==='heat'){
+    if(Math.random()<dt*2.5){const tp=pts.reduce((a,p)=>p.y<a.y?p:a);parts.push({k:'sweat',x:tp.x+(Math.random()-.5)*R,y:tp.y+6,vx:(Math.random()-.5)*30,vy:-40,t:.8});}
+    if(ko<=0&&!game){mood=Math.max(0,mood-dt*.3);hunger=Math.max(0,hunger-dt*.2);if(Math.random()<dt*.06)say('hot');}
+    for(const f of fixtures)if(f.type==='goo'&&f.ice){f.ice=false;stat('reactions');toast('The ice melted back into goo.');}
+  }
+  if(weather==='wind'&&Math.random()<.35)parts.push({k:'leaf',x:-6,y:Math.random()*floorY(),vx:160+Math.random()*120,vy:(Math.random()-.5)*40,t:6,h:20+Math.random()*30,rot:Math.random()*6});
+  if(frozen>0){frozen-=dt;if(frozen<=0)say('wake2',true);}
+  // chemistry: electrified goo zaps whatever is in it
+  for(const f of fixtures){
+    if(f.type!=='goo'||!(f.charged>0))continue;
+    f.charged-=dt;
+    if(Math.random()<.5)parts.push({k:'spark',x:f.x+(Math.random()-.5)*f.w,y:floorY()-4,vx:(Math.random()-.5)*60,vy:-60-Math.random()*60,t:.3});
+    const inGoo=pts.some(p=>Math.abs(p.x-f.x)<f.w/2&&p.y>floorY()-14);
+    if(inGoo&&hitCD<=0&&ko<=0){hurt(4);hitCD=.4;for(const p of allBody())impulse(p,(Math.random()-.5)*3,(Math.random()-.5)*3);}
   }
   if(sleeping&&Math.random()<dt*.9){const tp=pts.reduce((a,p)=>p.y<a.y?p:a);parts.push({k:'txt',x:tp.x+16,y:tp.y-8,vx:14,vy:-24,t:1.6,text:'z',c:'#c9c1ea'});}
   // trust: a trusted friend comes to say hi
@@ -793,7 +855,7 @@ function think(dt){
     hopT-=dt;
     if(hopT<=0&&!game){
       hopT=1.6+Math.random()*(mood>70?2.5:5);
-      if(grounded()&&!grab&&!sleeping&&mood>35&&health>25){
+      if(grounded()&&!grab&&!sleeping&&frozen<=0&&mood>35&&health>25){
         const up=(mood>75?3.4:2.6)*gravSign;let side=0;
         if(ptr.x>-500&&mood>55)side=Math.sign(ptr.x-c.x)*Math.min(1.4,Math.abs(ptr.x-c.x)/120);
         else side=(Math.random()-.5)*1.6;
@@ -819,7 +881,7 @@ function think(dt){
   if(bubble){bubble.t-=dt;if(bubble.t<=0)bubble=null;}
   // particles
   for(let i=parts.length-1;i>=0;i--){const q=parts[i];q.t-=dt;if(q.t<=0){parts.splice(i,1);continue;}
-    if(q.vx!==undefined){q.x+=q.vx*dt;q.y+=q.vy*dt;if(q.k==='star'||q.k==='crumb')q.vy+=500*dt;if(q.k==='smoke'){q.vx*=.92;q.vy*=.92;}if(q.k==='heart')q.vy-=10*dt;}}
+    if(q.vx!==undefined){q.x+=q.vx*dt;q.y+=q.vy*dt;if(q.k==='star'||q.k==='crumb'||q.k==='plank'||q.k==='sweat')q.vy+=500*dt;if(q.k==='smoke'){q.vx*=.92;q.vy*=.92;}if(q.k==='heart')q.vy-=10*dt;}}
   if(armed){armTimer-=dt;if(armTimer<=0){armed=null;buildTray();}}
   if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)$('toast').hidden=true;}
   if(saveT>0){saveT-=dt;if(saveT<=0)flushSave();}
@@ -829,6 +891,9 @@ function think(dt){
 const GAMES=[
  {id:'keepup',name:'Keep-up',desc:'Tap near NAME to bounce it. Don\'t let it touch the floor. It floats a little in this game.',unit:'bounces'},
  {id:'rain',name:'Snack Rain',desc:'NAME slides under your cursor or finger (arrow keys and A/D work too). Catch gold snacks, dodge the chilis. 30 seconds.',unit:'snacks'},
+ {id:'hide',name:'Hide and Seek',desc:'NAME hides behind a bush or box. Tap where you think it is. Watch for wiggles. 45 seconds.',unit:'finds'},
+ {id:'simon',name:'Copy Me',desc:'NAME lights up the pads in order. Tap them back in the same order. One mistake ends it.',unit:'rounds'},
+ {id:'tower',name:'Bounce Tower',desc:'Drop or throw crates to build a tower. NAME climbs as high as it can. 40 seconds.',unit:'high'},
  {id:'toss',name:'Target Toss',desc:'Drag the way you want to throw and let go to hit the floating targets. NAME cheers you on. 40 seconds.',unit:'hits'},
  {id:'fetch',name:'Fetch',desc:'Grab the ball with the Hand and fling it. NAME runs after it and brings it back. 45 seconds.',unit:'fetches'}
 ];
@@ -866,18 +931,55 @@ function startGame(id){
   if(ko>0){toast(nm()+' needs a moment to wake up');return;}
   $('gamePanel').hidden=true;
   const def=GAMES.find(g=>g.id===id);
-  game={id,def,score:0,state:'wait',t2:0,carriedBy:false,t:id==='rain'?30:id==='fetch'?45:id==='toss'?40:0,spawnT:.5,grace:1,held:0,armed:false,ball:null};
+  game={id,def,score:0,state:'wait',t2:0,carriedBy:false,t:id==='rain'?30:id==='fetch'?45:id==='toss'?40:id==='hide'?45:id==='tower'?40:0,spawnT:.5,grace:1,held:0,armed:false,ball:null};
   holes=[];zap=null;objs=objs.filter(o=>o.type!=='rocket'&&o.type!=='firecracker');
   if(id==='keepup'){for(const q of allBody())q.py=q.y+6*gravSign;}
   if(id==='toss'){tool='ball';buildTray();game.targets=[newTarget(),newTarget(),newTarget()];}
+  if(id==='hide'){setupHide(game);say('hide',true);}
+  if(id==='simon'){game.seq=[(Math.random()*4)|0];game.phase='show';game.si=0;game.st=1;game.lit=[0,0,0,0];game.ii=0;}
+  if(id==='tower'){tool='crate';buildTray();game.climbT=1.5;}
   if(id==='fetch'){tool='hand';buildTray();const c=centroid();game.ball=spawn('ball',Math.max(30,Math.min(W-30,c.x+90)),c.y-60);}
   say('game',true);wave=1;stat('games');
   $('hint').textContent=def.desc.replace('NAME',nm());
   $('hudName').textContent=def.name;$('hud').hidden=false;updHud();
 }
 function newTarget(){return{x:W*(.3+Math.random()*.6),y:60+Math.random()*(floorY()-180),r:22+Math.random()*10,ph:Math.random()*6,sp:.5+Math.random()};}
+function moveGloop(x,y){const c=centroid(),dx=x-c.x,dy=y-c.y;for(const p of allBody()){p.x+=dx;p.y+=dy;p.px+=dx;p.py+=dy;}cPrev=null;}
+function setupHide(g){
+  const n=4;g.spots=[];
+  for(let i=0;i<n;i++)g.spots.push({x:W*(i+.5)/n,w:Math.min(140,W/n-12),h:Math.max(110,R*2.4),kind:i%2?'box':'bush',open:0,wig:0,shake:0});
+  g.hideIdx=(Math.random()*n)|0;g.peekT=1.8;g.found=false;g.wigT=2.5;
+  moveGloop(g.spots[g.hideIdx].x,floorY()-R-6);
+}
+function simonPads(){const r=Math.min(40,W*.08),y=Math.max(90,floorY()*.38);return[0,1,2,3].map(i=>({x:W*(.2+.2*i),y,r}));}
 function drawGame(){
-  if(!game||game.id!=='toss')return;
+  if(!game)return;
+  const fy=floorY();
+  if(game.id==='hide'){
+    game.spots.forEach((sp,i)=>{
+      const off=(i===game.hideIdx&&game.found?Math.min(1,(1.2-sp.open)*3)*sp.w*.7:0)+Math.sin(simTime*40)*(sp.wig*5+sp.shake*8);
+      ctx.save();ctx.translate(sp.x+off,fy);
+      if(sp.kind==='bush'){ctx.fillStyle='#3f9a4f';[[-sp.w*.32,-sp.h*.42,sp.w*.32],[sp.w*.3,-sp.h*.45,sp.w*.3],[0,-sp.h*.7,sp.w*.36],[0,-sp.h*.3,sp.w*.42]].forEach(([x,y,r])=>{ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();});
+        ctx.fillStyle='rgba(255,255,255,.12)';ctx.beginPath();ctx.arc(-sp.w*.1,-sp.h*.8,sp.w*.12,0,7);ctx.fill();}
+      else{ctx.fillStyle='#b9824a';ctx.fillRect(-sp.w/2,-sp.h,sp.w,sp.h);ctx.strokeStyle='#8a5a2b';ctx.lineWidth=3;ctx.strokeRect(-sp.w/2+2,-sp.h+2,sp.w-4,sp.h-4);
+        ctx.fillStyle='#e6cfa0';ctx.fillRect(-sp.w/2,-sp.h*.62,sp.w,10);}
+      ctx.restore();
+    });
+    if(game.peekT>0){ctx.fillStyle='rgba(10,8,20,.93)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#f4effd';ctx.font='800 20px Nunito, system-ui, sans-serif';ctx.textAlign='center';ctx.fillText('No peeking! '+nm()+' is hiding...',W/2,H/2);ctx.textAlign='start';}
+  }
+  if(game.id==='simon'){
+    const cols=['#ff5d5d','#5fd0ff','#7ee0b5','#ffcf5a'];
+    simonPads().forEach((pd,i)=>{const l=game.lit[i]>0;ctx.globalAlpha=l?1:.45;ctx.fillStyle=cols[i];ctx.beginPath();ctx.arc(pd.x,pd.y,pd.r*(l?1.12:1),0,7);ctx.fill();
+      if(l){ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.stroke();}ctx.globalAlpha=1;});
+    const pd=simonPads()[0];ctx.fillStyle='#f4effd';ctx.font='800 15px Nunito, system-ui, sans-serif';ctx.textAlign='center';
+    ctx.fillText(game.phase==='show'?'Watch '+nm()+'...':'Your turn: '+(game.ii)+' / '+game.seq.length,W/2,pd.y-pd.r-16);ctx.textAlign='start';
+  }
+  if(game.id==='tower'){
+    const best=game.score;ctx.strokeStyle='rgba(255,194,75,.5)';ctx.setLineDash([6,6]);ctx.lineWidth=2;
+    const y=fy-best*10;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#ffc24b';ctx.font='800 12px Nunito, system-ui, sans-serif';ctx.fillText('Best: '+best,8,y-4);
+  }
+  if(game.id!=='toss')return;
   for(const t of game.targets){
     const x=t.x+Math.sin(simTime*t.sp+t.ph)*40,y=t.y+Math.cos(simTime*t.sp*.8+t.ph)*20;
     for(const[r,c]of[[1,'#ff5d5d'],[.66,'#f4effd'],[.33,'#ff5d5d']]){ctx.fillStyle=c;ctx.beginPath();ctx.arc(x,y,t.r*r,0,7);ctx.fill();}
@@ -889,7 +991,7 @@ function gameTick(dt,c){
   if(g.id==='keepup'){
     g.grace-=dt;
     if(g.grace<=0&&grounded()){endGame();return;}
-  }else{g.t-=dt;if(g.t<=0){endGame();return;}}
+  }else if(g.id!=='simon'){g.t-=dt;if(g.t<=0){endGame();return;}}
   if(g.id==='rain'){
     // Snack Rain rules: Gloop slides straight under your cursor/finger (or arrow keys / A-D)
     const tx=keyDir?c.x+keyDir*400:(ptr.x>-500?ptr.x:null);
@@ -904,6 +1006,32 @@ function gameTick(dt,c){
         else{g.score=Math.max(0,g.score-2);hurtT=.5;say('hot',true);sfx.ouch();parts.push({k:'txt',x:o.x,y:o.y-10,vx:0,vy:-50,t:.8,text:'-2',c:'#ff7d8e'});}
       }else if(o.y>floorY()-o.r-2||o.y<o.r+10){o.life-=dt;if(o.life<=0)objs.splice(i,1);}
     }
+  }
+  if(g.id==='hide'){
+    g.peekT-=dt;const sp=g.spots[g.hideIdx];
+    for(const s2 of g.spots){s2.wig=Math.max(0,s2.wig-dt);s2.shake=Math.max(0,s2.shake-dt);s2.open=Math.max(0,s2.open-dt);}
+    if(g.found){g.foundT-=dt;if(g.foundT<=0)setupHide(g);}
+    else{dash(sp.x,2);if(g.peekT<=0){g.wigT=(g.wigT??2)-dt;if(g.wigT<=0){g.wigT=2.5+Math.random()*2;sp.wig=.6;if(Math.random()<.5)sfx.giggle();}}}
+  }
+  if(g.id==='simon'){
+    g.lit=g.lit.map(v=>Math.max(0,v-dt));
+    if(g.phase==='show'){
+      g.st-=dt;
+      if(g.st<=0){
+        if(g.si<g.seq.length){const k=g.seq[g.si];g.lit[k]=.45;tone([330,392,494,587][k],.3,'triangle',.08);wave=.4;g.si++;g.st=.65;}
+        else{g.phase='input';g.ii=0;}
+      }
+    }
+  }
+  if(g.id==='tower'){
+    g.climbT-=dt;
+    let topC=null;for(const o of objs)if(o.type==='crate'&&!o.held&&(!topC||o.y<topC.y))topC=o;
+    if(g.climbT<=0&&Math.hypot(vPrev.x,vPrev.y)<2.5){
+      g.climbT=.9;const tx=topC?topC.x:c.x,side=Math.max(-1.6,Math.min(1.6,(tx-c.x)*.02));
+      for(const q of allBody())impulse(q,side,-3.7*gravSign);kick=.4;
+    }
+    let maxY=-1e9;for(const p of pts)if(p.y>maxY)maxY=p.y;
+    g.score=Math.max(g.score,Math.max(0,Math.round((floorY()-maxY)/10)));
   }
   if(g.id==='toss'){
     for(let i=objs.length-1;i>=0;i--){
@@ -955,7 +1083,7 @@ function endGame(quit){
   $('hud').hidden=true;setHint();
   objs=objs.filter(o=>o.type!=='gold'&&o.type!=='chili');for(const o of objs)o.held=false;
   if(quit){toast('Game ended');return;}
-  const reward=5+(g.id==='keepup'?g.score*2+(g.score>=10?10:0):g.id==='rain'?g.score*2:g.id==='toss'?g.score*3:g.score*4);
+  const reward=5+(g.id==='keepup'?g.score*2+(g.score>=10?10:0):g.id==='rain'?g.score*2:g.id==='toss'?g.score*3:g.id==='hide'?g.score*4:g.id==='simon'?g.score*5:g.id==='tower'?g.score:g.score*4);
   save.best=save.best||{};const prev=save.best[g.id]||0,isBest=g.score>prev;
   if(isBest)save.best[g.id]=g.score;
   statMax('best_'+g.id,g.score);trustAdd(3);
@@ -1032,6 +1160,9 @@ function showShop(){
 function showTrophies(){
   const p=$('gamePanel');p.innerHTML='';
   p.append(el('h2',null,'Trophies'),el('p',null,save.ach.length+' of '+ACH.length+' earned. Each one pays coins.'));
+  if(save.daily){const ch=DAILY[save.daily.i%DAILY.length],v=Math.max(0,Math.min(ch.goal,(save.stats[ch.stat]||0)-save.daily.base));
+    const card=el('div','gcard'+(save.daily.done?' done':''));card.append(el('b',null,'Today\'s challenge'),el('span','tag',save.daily.done?'Done':'+60'),el('small',null,ch.text.replace('NAME',nm())+' ('+v+'/'+ch.goal+')'));
+    const m=el('div','meter'),f=el('i');f.style.width=(v/ch.goal*100)+'%';m.append(f);card.append(m);p.append(card);}
   const list=el('div','glist');
   for(const a of ACH){
     const done=save.ach.includes(a.id),v=Math.min(a.goal,save.stats[a.stat]||0);
@@ -1089,6 +1220,23 @@ cv.addEventListener('pointerdown',e=>{
     return;
   }
   if(game&&game.id==='rain')return;
+  if(game&&game.id==='hide'){
+    const g=game;if(g.peekT>0||g.found)return;
+    const i=g.spots.findIndex(sp=>Math.abs(p.x-sp.x)<sp.w/2&&p.y>floorY()-sp.h-10);
+    if(i<0)return;
+    if(i===g.hideIdx){g.score++;g.found=true;g.foundT=1.3;g.spots[i].open=1.2;say('found',true);sfx.coin();wave=1;}
+    else{g.spots[i].shake=.5;g.t=Math.max(0,g.t-3);parts.push({k:'txt',x:p.x,y:p.y-14,vx:0,vy:-40,t:.8,text:'-3s',c:'#ff7d8e'});sfx.pop();}
+    return;
+  }
+  if(game&&game.id==='simon'){
+    const g=game;if(g.phase!=='input')return;
+    const i=simonPads().findIndex(pd=>Math.hypot(p.x-pd.x,p.y-pd.y)<pd.r+8);
+    if(i<0)return;
+    g.lit[i]=.3;tone([330,392,494,587][i],.25,'triangle',.08);
+    if(i===g.seq[g.ii]){g.ii++;if(g.ii===g.seq.length){g.score++;g.seq.push((Math.random()*4)|0);g.phase='show';g.si=0;g.st=1;sfx.coin();if(Math.random()<.5)say('happy',true);}}
+    else{sfx.ouch();say('sad',true);endGame();}
+    return;
+  }
   if(THROWABLE.includes(tool)){
     if(tool==='snack'&&save.coins<2){toast('Snacks cost 2 coins');return;}
     aim={tool,x:p.x,y:p.y};return;
@@ -1127,13 +1275,15 @@ cv.addEventListener('pointerdown',e=>{
       break;}
     case 'bowling':spawn('bowling',p.x,p.y);break;
     case 'cactus':spawn('cactus',p.x,p.y);break;
-    case 'zapper':if(onBlob&&!zap&&ko<=0){zap={t:1,tick:0,x:p.x,y:p.y};combo=comboT>0?combo+1:1;comboT=1.5;statMax('bestCombo',combo);say('zap',true);sfx.zap();stat('zaps');}break;
+    case 'zapper':if(!onBlob){const f=fixtures.find(f=>f.type==='goo'&&Math.abs(p.x-f.x)<f.w/2&&p.y>floorY()-40);if(f){f.charged=5;stat('reactions');sfx.zap();toast('Electrified goo!');}break;}
+      if(onBlob&&!zap&&ko<=0){zap={t:1,tick:0,x:p.x,y:p.y};combo=comboT>0?combo+1:1;comboT=1.5;statMax('bestCombo',combo);say('zap',true);sfx.zap();stat('zaps');}break;
     case 'rocket':{const o=spawn('rocket',p.x,p.y);const c=centroid(),dx=c.x-p.x,dy=c.y-p.y,d=Math.hypot(dx,dy)||1;o.px=o.x-dx/d*2;o.py=o.y-dy/d*2;sfx.whoosh();break;}
     case 'trampoline':if(fixtures.length<6){fixtures.push({type:'trampoline',x:Math.max(70,Math.min(W-70,p.x)),w:120,boing:0});sfx.pop();}else toast('Six props is the limit. Clear items to start over.');break;
     case 'fan':if(fixtures.length<6){const c0=centroid();fixtures.push({type:'fan',x:p.x,y:Math.max(60,Math.min(floorY()-40,p.y)),dir:Math.sign(c0.x-p.x)||1});sfx.pop();}else toast('Six props is the limit. Clear items to start over.');break;
     case 'goo':if(fixtures.length<6){fixtures.push({type:'goo',x:p.x,w:130});sfx.nom();}else toast('Six props is the limit. Clear items to start over.');break;
     case 'potion':if(onBlob&&ko<=0){const kinds=['shrink','grow','bouncy','liquid'];potion={kind:kinds[potionIdx%4],t:12};potionIdx++;stat('potions');say('potion',true);sfx.buy();
       const c0=centroid();for(let i=0;i<14;i++)parts.push({k:'glit',x:c0.x+(Math.random()-.5)*R*2,y:c0.y+(Math.random()-.5)*R*2,vx:0,vy:-30,t:.8,h:(i*40)%360});toast('Potion: '+potion.kind+' for 12 seconds');}break;
+    case 'weather':{const order=['clear','snow','heat','wind'];weather=order[(order.indexOf(weather)+1)%4];sfx.whoosh();toast(weather==='clear'?'Clear skies':weather==='snow'?'Snowfall':weather==='heat'?'Heat wave':'Windy');break;}
     case 'storm':if(clouds.length<2){clouds.push({x:p.x,y:46,t:7,strikeT:1.1});sfx.rumble();}else toast('Two storms at once is the limit');break;
     case 'blackhole':if(holes.length<2){holes.push({x:p.x,y:p.y,t:4,tick:0});sfx.hole();stat('holes');}break;
   }
@@ -1314,7 +1464,8 @@ function drawBlob(){
     for(let i=0;i<N;i++){const p=pts[i],m=mid(p,pts[(i+1)%N]);ctx.quadraticCurveTo(p.x,p.y,m.x,m.y);}
     ctx.closePath();
   }
-  {let tint=null;if(ko<=0&&charT<=0){if(save.trust<-30&&mood<30)tint='rgba(255,50,50,.3)';else if(mood<30)tint='rgba(70,110,255,.24)';else if(mood>85)tint='rgba(255,120,190,.2)';}
+  if(frozen>0){ctx.fillStyle='rgba(190,235,255,.55)';ctx.fill();}
+  {let tint=null;if(ko<=0&&charT<=0&&frozen<=0){if(save.trust<-30&&mood<30)tint='rgba(255,50,50,.3)';else if(mood<30)tint='rgba(70,110,255,.24)';else if(mood>85)tint='rgba(255,120,190,.2)';}
    if(tint){ctx.fillStyle=tint;ctx.fill();}}
   if(charT>0){ctx.fillStyle='rgba(30,22,18,'+(.62*Math.min(1,charT/1.5))+')';ctx.fill();}
   ctx.lineWidth=3;ctx.strokeStyle=shade(col,-.32);ctx.stroke();
@@ -1433,6 +1584,10 @@ function drawParts(){
     else if(q.k==='smoke'){ctx.fillStyle='rgba(200,190,230,.5)';ctx.beginPath();ctx.arc(q.x,q.y,q.r*(1.6-q.t),0,7);ctx.fill();}
     else if(q.k==='spark'){ctx.fillStyle='#ffd166';ctx.fillRect(q.x-1.5,q.y-1.5,3,3);}
     else if(q.k==='crumb'){ctx.fillStyle='#d9a05b';ctx.fillRect(q.x-2,q.y-2,4,4);}
+    else if(q.k==='snow'){ctx.fillStyle='rgba(255,255,255,.85)';ctx.beginPath();ctx.arc(q.x+Math.sin(q.t*3+q.x)*4,q.y,2.2,0,7);ctx.fill();}
+    else if(q.k==='sweat'){ctx.fillStyle='rgba(120,190,255,.85)';ctx.beginPath();ctx.ellipse(q.x,q.y,2.5,4,0,0,7);ctx.fill();}
+    else if(q.k==='leaf'){ctx.save();ctx.translate(q.x,q.y+Math.sin(q.t*5)*6);ctx.rotate(q.rot+q.t*4);ctx.fillStyle='hsl('+q.h+',70%,45%)';ctx.beginPath();ctx.ellipse(0,0,6,3,0,0,7);ctx.fill();ctx.restore();}
+    else if(q.k==='plank'){ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.rot+q.t*8);ctx.fillStyle='#c98b4a';ctx.fillRect(-9,-2.5,18,5);ctx.restore();}
     else if(q.k==='rain'){ctx.strokeStyle='rgba(170,200,255,.6)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(q.x,q.y);ctx.lineTo(q.x-2,q.y+9);ctx.stroke();}
     else if(q.k==='glit'){ctx.fillStyle='hsl('+q.h+',90%,75%)';const s=2+q.t*4;ctx.beginPath();ctx.moveTo(q.x,q.y-s);ctx.lineTo(q.x+s*.35,q.y);ctx.lineTo(q.x,q.y+s);ctx.lineTo(q.x-s*.35,q.y);ctx.closePath();ctx.fill();ctx.fillRect(q.x-s,q.y-.6,s*2,1.2);}
     else if(q.k==='mallet'){
@@ -1504,6 +1659,7 @@ function applyFixtures(){
     }else if(f.type==='fan'){
       for(const p of movers){const dx=(p.x-f.x)*f.dir;if(dx>0&&dx<360&&Math.abs(p.y-f.y)<80){const a=.06*(1-dx/360)/(p.m?Math.sqrt(p.m):1);p.px-=a*f.dir;}}
     }else if(f.type==='goo'){
+      if(f.ice)continue;
       for(const p of movers){const r=p.r||3;if(Math.abs(p.x-f.x)<f.w/2&&(gravSign>0?p.y>fy-r-8:p.y<r+16)){p.px=p.x-(p.x-p.px)*.6;p.py=p.y-(p.y-p.py)*.6;}}
     }
   }
@@ -1523,7 +1679,7 @@ function drawFixtures(){
       for(let i=0;i<4;i++){const ph=(simTime*1.6+i/4)%1,x=f.x+f.dir*(30+ph*300),y=f.y-30+i*20;ctx.globalAlpha=1-ph;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+f.dir*22,y);ctx.stroke();}
       ctx.globalAlpha=1;
     }else if(f.type==='goo'){
-      const y=gravSign>0?fy:0;ctx.fillStyle='rgba(126,217,87,.85)';ctx.beginPath();ctx.ellipse(f.x,y,f.w/2,9,0,0,7);ctx.fill();
+      const y=gravSign>0?fy:0;ctx.fillStyle=f.ice?'rgba(190,235,255,.9)':f.charged>0?'rgba(220,240,90,.9)':'rgba(126,217,87,.85)';ctx.beginPath();ctx.ellipse(f.x,y,f.w/2,9,0,0,7);ctx.fill();
       ctx.fillStyle='rgba(255,255,255,.35)';ctx.beginPath();ctx.arc(f.x-20,y-3,3,0,7);ctx.arc(f.x+24,y-2,2,0,7);ctx.fill();
     }
   }
@@ -1607,7 +1763,8 @@ function start(data){
      save.streak=save.lastDay===yest?(save.streak||0)+1:1;save.lastDay=today;
      const gift=20+10*Math.min(save.streak,7);save.coins+=gift;statMax('streak',save.streak);persist();
      toast('Daily gift: +'+gift+' coins'+(save.streak>1?' ('+save.streak+'-day streak)':''));
-   }}
+   }
+   if(!save.daily||save.daily.day!==today){let h=0;for(const ch of today)h=(h*31+ch.charCodeAt(0))>>>0;const i=h%DAILY.length;save.daily={day:today,i,base:save.stats[DAILY[i].stat]||0,done:false};persist();}}
   if(save.unlocked.includes('hat')&&!save.looks.includes('party')){save.looks.push('party');if(save.hat)save.hatId='party';}
   save.hat=false;if(!save.rooms.includes(save.room))save.room='night';
   $('nameInput').value=save.name;syncMute();
