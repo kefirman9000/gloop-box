@@ -1,4 +1,4 @@
 {
-  "version": "1.10.3",
-  "notes": "Phones: the tool area is now a short grid you scroll up and down to reach every tool, and it fits above the browser bar. On smaller screens the room is shown slightly zoomed out, so Gloop and items look smaller and there's more space to play."
+  "version": "1.10.4",
+  "notes": "Clear room button in the corner of the room (tap twice) that removes every item, prop and building piece. The Hand can now pick up items more easily and drag trampolines, fans, goo, shelves, ramps and seesaws to new spots."
 }

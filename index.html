@@ -63,6 +63,8 @@ canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
 .photobar{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:flex;gap:6px;flex-wrap:wrap;justify-content:center;background:var(--chip);border:1px solid var(--line);border-radius:14px;padding:8px;width:max-content;max-width:calc(100% - 24px)}
 .photobar .btn.on{background:var(--ink);color:var(--room);border-color:var(--ink)}
 .zoomreset{position:absolute;right:12px;bottom:12px}
+.clearroom{position:absolute;left:10px;bottom:10px;padding:5px 10px;font-size:.78rem;background:rgba(38,32,68,.82)}
+.clearroom.arm{background:var(--ink);color:var(--room)}
 .tabs{display:flex;gap:6px;flex-wrap:wrap}
 .tabs .btn[aria-selected="true"]{background:var(--ink);color:var(--room);border-color:var(--ink)}
 .glist{display:grid;gap:8px}
@@ -168,7 +170,7 @@ html.mobile .photobar{bottom:8px}
       <button class="btn" id="trophyBtn">Trophies</button>
       <button class="btn" id="photoBtn">Photo</button>
       <button class="btn" id="undoBtn">Undo</button>
-      <button class="btn" id="clearBtn">Clear items</button>
+      <button class="btn" id="clearBtn">Clear room</button>
       <button class="btn" id="tricksBtn">Tricks</button>
       <button class="btn" id="muteBtn" aria-pressed="false">Sound on</button>
       <button class="btn" id="settingsBtn">Settings</button>
@@ -184,6 +186,7 @@ html.mobile .photobar{bottom:8px}
     <div class="msheet" id="menuSheet" hidden></div>
     <div class="photobar" id="photoBar" hidden></div>
     <button class="btn zoomreset" id="zoomReset" hidden>Reset zoom</button>
+    <button class="btn clearroom" id="clearRoomBtn" title="Remove every item and prop from the room">Clear room</button>
     <div class="update" id="updatePanel" hidden>
       <strong id="updTitle">Update available</strong>
       <p id="updText"></p>
@@ -220,7 +223,7 @@ const ICONS={
  blackhole:'<circle cx="12" cy="12" r="3"/><path d="M12 4a8 8 0 0 1 8 8M4 12a8 8 0 0 1 8-8M12 20a8 8 0 0 1-8-8M20 12a8 8 0 0 1-8 8"/>'
 };
 const TOOLS=[
- {id:'hand',name:'Hand',price:0,hint:'Drag NAME around and fling. Hover slowly to pet.'},
+ {id:'hand',name:'Hand',price:0,hint:'Drag NAME or any item around and fling it. Drag props and building pieces to move them. Hover slowly over NAME to pet.'},
  {id:'feather',name:'Feather',price:0,hint:'Wiggle over NAME to tickle. Tickles can pay coins.'},
  {id:'snack',name:'Snack',price:0,cost:2,hint:'Tap to drop a snack (2 coins), or drag the way you want to toss it and let go. NAME will try to catch it in midair for a bonus.'},
  {id:'pin',name:'Pin',price:0,hint:'Tap NAME to poke. It hurts.'},
@@ -626,7 +629,34 @@ $('undoBtn').onclick=()=>{
   while(placeLog.length){const l=placeLog.pop(),arr=l.arr(),i=arr.indexOf(l.ref);if(i>=0){arr.splice(i,1);if(grab&&grab.ref===l.ref)grab=null;saveLayout();sfx.pop();toast('Undone');return;}}
   toast('Nothing to undo');
 };
-$('clearBtn').onclick=()=>{plats=[];placeLog=[];objs=objs.filter(o=>o.type==='pip');fixtures=[];clouds=[];holes=[];grab=grab&&grab.type==='obj'?null:grab;saveLayout();toast('Items cleared');};
+function segDist(px,py,x1,y1,x2,y2){const dx=x2-x1,dy=y2-y1,l=dx*dx+dy*dy||1;let t=((px-x1)*dx+(py-y1)*dy)/l;t=Math.max(0,Math.min(1,t));return Math.hypot(px-(x1+dx*t),py-(y1+dy*t));}
+function propAt(x,y){
+  const fy=floorY();
+  for(let i=plats.length-1;i>=0;i--){const s2=plats[i];
+    if(s2.type==='seesaw'){const[x1,y1,x2,y2]=seesawEnds(s2);if(segDist(x,y,x1,y1,x2,y2)<22||(Math.abs(x-s2.px)<24&&y>s2.py-6&&y<=fy+4))return{ref:s2,kind:'plat'};}
+    else if(segDist(x,y,s2.x1,s2.y1,s2.x2,s2.y2)<s2.th/2+16)return{ref:s2,kind:'plat'};}
+  for(let i=fixtures.length-1;i>=0;i--){const f=fixtures[i];
+    if(f.type==='fan'){if(Math.hypot(x-f.x,y-f.y)<34||(Math.abs(x-f.x)<14&&y>f.y&&y<=fy+4))return{ref:f,kind:'fix'};}
+    else if(Math.abs(x-f.x)<f.w/2+8&&y>fy-(f.type==='trampoline'?34:26))return{ref:f,kind:'fix'};}
+  return null;
+}
+function dragProp(x,y){
+  const g=grab,dx=x-g.lx,dy=y-g.ly,r=g.ref,fy=floorY();g.lx=x;g.ly=y;
+  if(g.kind==='fix'){r.x=Math.max(20,Math.min(W-20,r.x+dx));if(r.type==='fan'){r.y=Math.max(50,Math.min(fy-40,r.y+dy));const c0=centroid();r.dir=Math.sign(c0.x-r.x)||r.dir;}}
+  else if(r.type==='seesaw'){r.px=Math.max(r.len/2,Math.min(W-r.len/2,r.px+dx));}
+  else{let mx=dx,my=dy;const minX=Math.min(r.x1,r.x2),maxX=Math.max(r.x1,r.x2),minY=Math.min(r.y1,r.y2),maxY=Math.max(r.y1,r.y2);
+    mx=Math.max(8-minX,Math.min(W-8-maxX,mx));my=Math.max(40-minY,Math.min(fy-6-maxY,my));r.x1+=mx;r.x2+=mx;r.y1+=my;r.y2+=my;}
+}
+function clearRoom(){
+  if(game){toast('Finish or quit the game first');return;}
+  plats=[];placeLog=[];objs=[];fixtures=[];clouds=[];holes=[];critters=[];splats=[];bolts=[];zap=null;
+  if(grab&&grab.type!=='pt'&&grab.type!=='limb')grab=null;aim=null;
+  saveLayout();sfx.whoosh();toast('Room cleared');
+}
+$('clearBtn').onclick=clearRoom;
+{const cb=$('clearRoomBtn');let t=null;
+ cb.onclick=()=>{if(!cb.classList.contains('arm')){cb.classList.add('arm');cb.textContent='Tap again to clear';clearTimeout(t);t=setTimeout(()=>{cb.classList.remove('arm');cb.textContent='Clear room';},2500);return;}
+   clearTimeout(t);cb.classList.remove('arm');cb.textContent='Clear room';clearRoom();};}
 const muteBtn=$('muteBtn');
 function syncMute(){muteBtn.textContent=save.muted?'Sound off':'Sound on';muteBtn.setAttribute('aria-pressed',String(save.muted));}
 muteBtn.onclick=()=>{save.muted=!save.muted;syncMute();persist();};
@@ -642,7 +672,7 @@ function syncBars(){
 }
 
 // ---------- updates from GitHub ----------
-const VERSION='1.10.3';
+const VERSION='1.10.4';
 const RAW='https://raw.githubusercontent.com/kefirman9000/gloop-box/main/';
 const newer=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return(x[i]||0)>(y[i]||0);}return false;};
 let updHtml=null,updUrl=null;
@@ -1849,7 +1879,8 @@ cv.addEventListener('pointerdown',e=>{
     pp.py=pp.y+4;pp.hurtT=.8;pipSay(pp,'Ow! Hey!');sfx.ouch();if(ko<=0){say('pipHurt',true);mood=Math.max(0,mood-6);trustAdd(-1.5);}return;}}
   switch(tool){
     case 'hand':{
-      const o=objs.slice().reverse().find(o=>Math.hypot(o.x-p.x,o.y-p.y)<o.r+6);
+      let o=null,bd=1e9;for(const q of objs){const d=Math.hypot(q.x-p.x,q.y-p.y);if(d<q.r+18&&d<bd){bd=d;o=q;}}
+      if(!o&&!inside(p.x,p.y)){const fx=propAt(p.x,p.y);if(fx){grab={type:'fix',ref:fx.ref,kind:fx.kind,lx:p.x,ly:p.y};sfx.pop();break;}}
       if(o){grab={type:'obj',ref:o};break;}
       if(game&&game.id==='course'){toast('No carrying in Gloop Goal. Build a path!');break;}
       const lq=nearLimb(p.x,p.y,18);
@@ -1915,6 +1946,7 @@ cv.addEventListener('pointermove',e=>{
   if(lp&&!lp.open){const q1=pos(e);if(Math.hypot(q1.sx-lp.sx,q1.sy-lp.sy)>10)lp=null;}
   const p=pos(e);const dx=p.x-ptr.x,dy=p.y-ptr.y,dist=Math.hypot(dx,dy);
   ptr.x=p.x;ptr.y=p.y;ptr.sx=p.sx;ptr.sy=p.sy;
+  if(grab&&grab.type==='fix'){dragProp(p.x,p.y);return;}
   if(ko>0||grab)return;
   const limbHit=nearLimb(p.x,p.y,14);
   const over=inside(p.x,p.y)||!!limbHit;
@@ -1934,6 +1966,7 @@ cv.addEventListener('pointermove',e=>{
   }
 });
 function release(e){
+  if(grab&&grab.type==='fix'){grab=null;ptr.down=false;saveLayout();return;}
   if(grab&&grab.type==='obj'&&grab.ref.type==='snack'&&Math.hypot(grab.ref.x-grab.ref.px,grab.ref.y-grab.ref.py)>1.5)grab.ref.thrown=true;
   if(e&&e.pointerType==='touch'){touches.delete(e.pointerId);if(touches.size<2&&pinch){pinch=null;ptr.down=false;return;}}
   if(lp&&lp.open){
