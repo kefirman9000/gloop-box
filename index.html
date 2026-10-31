@@ -55,7 +55,7 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px}
 .btn{font:inherit;font-weight:700;font-size:.85rem;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:10px;padding:6px 11px;cursor:pointer}
 .btn:hover{background:var(--chip-hi)}
 .btn:focus-visible,.tool:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-.stage{position:relative;min-height:0;border-radius:18px;overflow:hidden;background:linear-gradient(var(--stage-top),var(--stage-bot));box-shadow:inset 0 0 0 1px var(--line)}
+.stage{position:relative;min-height:0;border-radius:18px;overflow:hidden;background:linear-gradient(var(--stage-top),var(--stage-bot))}
 canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
 .hint{position:absolute;left:12px;top:12px;max-width:calc(100% - 24px);font-size:.82rem;color:var(--ink);background:rgba(23,20,42,.6);padding:5px 10px;border-radius:10px;pointer-events:none;text-wrap:balance}
 .hint:empty{display:none}
@@ -510,13 +510,16 @@ function nearLimb(x,y,r){let best=null,bd=r;for(const q of limbNodes()){const d=
 
 // ---------- audio ----------
 let actx=null;
+let audioOk=false;
+for(const ev of['pointerdown','keydown'])window.addEventListener(ev,()=>{if(audioOk)return;audioOk=true;try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();actx.resume&&actx.resume();}catch(_){}},{capture:true,once:false});
 function tone(f,d=.12,type='sine',vol=.08,slide=0){
+  if(!audioOk)return;
   if(save.muted)return;
   try{
     actx=actx||new (window.AudioContext||window.webkitAudioContext)();
     const o=actx.createOscillator(),g=actx.createGain(),t=actx.currentTime;
     o.type=type;o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(40,f+slide),t+d);
-    g.gain.setValueAtTime(Math.max(.0002,vol*(save.volume??1)),t);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    const v=Math.max(.0002,vol*(save.volume??1));g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(v,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+d);
     o.connect(g).connect(actx.destination);o.start(t);o.stop(t+d+.02);
   }catch(e){}
 }
@@ -636,7 +639,7 @@ function syncBars(){
 }
 
 // ---------- updates from GitHub ----------
-const VERSION='1.10.0';
+const VERSION='1.10.1';
 const RAW='https://raw.githubusercontent.com/kefirman9000/gloop-box/main/';
 const newer=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return(x[i]||0)>(y[i]||0);}return false;};
 let updHtml=null,updUrl=null;

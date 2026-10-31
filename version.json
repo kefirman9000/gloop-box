@@ -1,4 +1,4 @@
 {
-  "version": "1.10.0",
-  "notes": "Phone layout: on a phone the game switches to a compact portrait layout. The header shrinks to Gloop's name, coins and a Menu button that holds Games, Shop, Wardrobe and the rest. The four meters sit in one slim row, tools are a two-row strip you swipe sideways, and pop-up screens slide up from the bottom."
+  "version": "1.10.1",
+  "notes": "Removed the outline around the play area. Fixed the popping sound when the game starts on phones: no sound plays until you first touch the game, and every sound now fades in instead of clicking."
 }
