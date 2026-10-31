@@ -29,7 +29,7 @@
 *,*::before,*::after{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{background:var(--room);color:var(--ink);font-family:var(--body);font-size:14px;overflow:hidden}
-.app{height:100%;display:grid;grid-template-rows:auto 1fr auto;gap:10px;
+.app{height:100%;display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:minmax(0,1fr);gap:10px;
   padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));box-sizing:border-box}
 header{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px}
 .name{font-family:var(--display);font-size:1.6rem;line-height:1;color:var(--ink);background:transparent;border:0;border-bottom:2px dashed transparent;
@@ -127,6 +127,8 @@ canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
   background:var(--chip);border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 34px rgba(0,0,0,.5)}
 .msheet .btn{padding:11px 6px;font-size:.85rem}
 html.mobile .app{gap:6px;padding-block:6px}
+header,.stage,.tray{min-width:0;max-width:100%}
+html.mobile,html.mobile body{overflow:hidden;overscroll-behavior:none;width:100%}
 html.mobile header{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 10px}
 html.mobile .name{grid-row:1;grid-column:1;font-size:1.25rem;width:100%}
 html.mobile .right{grid-row:1;grid-column:2;gap:8px}
@@ -639,7 +641,7 @@ function syncBars(){
 }
 
 // ---------- updates from GitHub ----------
-const VERSION='1.10.1';
+const VERSION='1.10.2';
 const RAW='https://raw.githubusercontent.com/kefirman9000/gloop-box/main/';
 const newer=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return(x[i]||0)>(y[i]||0);}return false;};
 let updHtml=null,updUrl=null;
@@ -1399,6 +1401,8 @@ function startGame(id){
   $('hudName').textContent=def.name;$('hud').hidden=false;updHud();
 }
 function newTarget(){return{x:W*(.3+Math.random()*.6),y:60+Math.random()*(floorY()-180),r:22+Math.random()*10,ph:Math.random()*6,sp:.5+Math.random()};}
+function keepInside(){if(!pts.length)return;const c=centroid(),fy=floorY(),nx=Math.max(R+10,Math.min(W-R-10,c.x)),ny=Math.min(c.y,fy-R-2);if(nx!==c.x||ny!==c.y)moveGloop(nx,ny);
+  for(const o of objs){const x=Math.max(o.r+8,Math.min(W-o.r-8,o.x)),y=Math.min(o.y,fy-o.r);if(x!==o.x||y!==o.y){o.px+=x-o.x;o.py+=y-o.y;o.x=x;o.y=y;}}}
 function moveGloop(x,y){const c=centroid(),dx=x-c.x,dy=y-c.y;for(const p of allBody()){p.x+=dx;p.y+=dy;p.px+=dx;p.py+=dy;}cPrev=null;}
 function setupHide(g){
   const n=4;g.spots=[];
@@ -2572,7 +2576,7 @@ function start(data){
   if(save.unlocked.includes('hat')&&!save.looks.includes('party')){save.looks.push('party');if(save.hat)save.hatId='party';}
   save.hat=false;if(!save.rooms.includes(save.room))save.room='night';
   $('nameInput').value=save.name;syncMute();
-  resize();new ResizeObserver(()=>{resize();clampCam();}).observe(stage);
+  resize();new ResizeObserver(()=>{resize();clampCam();keepInside();}).observe(stage);
   initBlob(W*.42,floorY()-R-4);
   loadLayout();
   // a starter ball so the room isn't empty

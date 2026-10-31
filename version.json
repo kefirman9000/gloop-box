@@ -1,4 +1,4 @@
 {
-  "version": "1.10.1",
-  "notes": "Removed the outline around the play area. Fixed the popping sound when the game starts on phones: no sound plays until you first touch the game, and every sound now fades in instead of clicking."
+  "version": "1.10.2",
+  "notes": "Phone fix: the tool strip was stretching the room wider than the screen, so the room sat off-center and Gloop could wander out of view. The room now fits the screen exactly, and Gloop and items are pulled back into view whenever the room changes size."
 }
