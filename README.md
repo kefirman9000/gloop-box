@@ -27,12 +27,19 @@ Or open `index.html` in any modern browser. No install or server needed.
 | Zapper | 70 | A one-second jolt. |
 | Rocket | 100 | Homes in on Gloop and explodes. |
 | Black hole | 150 | Pulls everything in for 4 seconds. |
+| Storm cloud | 130 | Drifts over Gloop and strikes with lightning. |
+| Trampoline | 45 | Bounces anything that lands on it. |
+| Fan | 55 | Blows toward Gloop. |
+| Goo puddle | 35 | Sticky floor that slows things down. |
+| Potion | 90 | Shrink, grow, bouncy or liquid for 12 seconds. |
 
 ## Shop, games and trophies
 
 - **Shop:** hats (party, beanie, top hat, crown, propeller cap), eyewear, patterns, a sparkle trail, and four rooms.
-- **Games:** Keep-up, Snack Rain and Fetch. Every game pays at least 5 coins plus a score bonus.
+- **Games:** Keep-up, Snack Rain, Target Toss and Fetch. Every game pays at least 5 coins plus a score bonus.
 - **Trophies:** 22 goals that each pay coins, plus a stats page.
+- **Personality:** Gloop has trust, hunger, boredom and naps. Treat it well and it comes to greet you; treat it badly and it spits jelly at your cursor.
+- **Daily gift:** coins every day you visit, more for a streak.
 - **Reactions:** hits chain into combos that pay coins, hard slams kick up dust and can knock Gloop out, and after being hurt Gloop backs away from weapons.
 
 Gloop earns coins on its own while its mood is above 60. If health hits zero it gets knocked out for a few seconds and then recovers.
