@@ -28,6 +28,7 @@
 [hidden]{display:none!important}
 *,*::before,*::after{box-sizing:border-box}
 html,body{height:100%;margin:0}
+@supports (height:100dvh){html.mobile,html.mobile body{height:100dvh}}
 body{background:var(--room);color:var(--ink);font-family:var(--body);font-size:14px;overflow:hidden}
 .app{height:100%;display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:minmax(0,1fr);gap:10px;
   padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));box-sizing:border-box}
@@ -139,7 +140,7 @@ html.mobile .bar label{font-size:.56rem;letter-spacing:.05em}
 html.mobile .track{height:7px}
 html.mobile .stage{border-radius:14px}
 html.mobile .hint{font-size:.72rem;top:8px;left:8px;max-width:calc(100% - 16px);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-html.mobile .tray{grid-auto-flow:column;grid-template-columns:none;grid-template-rows:repeat(2,auto);grid-auto-columns:60px;overflow-x:auto;overscroll-behavior-x:contain;padding-bottom:2px;scrollbar-width:none}
+html.mobile .tray{grid-template-columns:repeat(auto-fill,minmax(56px,1fr));max-height:134px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding-bottom:max(2px,env(safe-area-inset-bottom,0px));scrollbar-width:thin;mask-image:linear-gradient(#000 85%,transparent)}
 html.mobile .tray::-webkit-scrollbar{display:none}
 html.mobile .tool{padding:5px 2px 4px}
 html.mobile .gpanel,html.mobile .gpanel.side{left:8px;right:8px;top:auto;bottom:8px;transform:none;width:auto;max-height:78%}
@@ -641,7 +642,7 @@ function syncBars(){
 }
 
 // ---------- updates from GitHub ----------
-const VERSION='1.10.2';
+const VERSION='1.10.3';
 const RAW='https://raw.githubusercontent.com/kefirman9000/gloop-box/main/';
 const newer=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return(x[i]||0)>(y[i]||0);}return false;};
 let updHtml=null,updUrl=null;
@@ -1794,7 +1795,8 @@ $('trophyBtn').onclick=()=>togglePanel(showTrophies);
 $('tricksBtn').onclick=()=>togglePanel(showTricks);
 
 // ---------- input ----------
-function pos(e){const r=cv.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top;return{x:(sx-cam.x)/cam.z,y:(sy-cam.y)/cam.z,sx,sy};}
+let VS=1;
+function pos(e){const r=cv.getBoundingClientRect(),sx=(e.clientX-r.left)/VS,sy=(e.clientY-r.top)/VS;return{x:(sx-cam.x)/cam.z,y:(sy-cam.y)/cam.z,sx,sy};}
 function clampCam(){cam.z=Math.max(1,Math.min(2.4,cam.z));cam.x=Math.min(0,Math.max(W-W*cam.z,cam.x));cam.y=Math.min(0,Math.max(H-H*cam.z,cam.y));if(cam.z<1.03){cam.z=1;cam.x=0;cam.y=0;}$('zoomReset').hidden=cam.z===1;}
 $('zoomReset').onclick=()=>{cam={x:0,y:0,z:1};clampCam();};
 cv.addEventListener('pointerdown',e=>{
@@ -2546,8 +2548,9 @@ function drawZap(){
 
 // ---------- loop ----------
 function resize(){
-  const r=stage.getBoundingClientRect();W=Math.max(200,r.width);H=Math.max(200,r.height);DPR=Math.min(2,window.devicePixelRatio||1);
-  cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
+  const r=stage.getBoundingClientRect(),cw=Math.max(200,r.width),ch=Math.max(200,r.height);DPR=Math.min(2,window.devicePixelRatio||1);
+  VS=Math.max(.68,Math.min(1,Math.min(cw,ch*1.25)/600));W=cw/VS;H=ch/VS;
+  cv.width=cw*DPR;cv.height=ch*DPR;ctx.setTransform(DPR*VS,0,0,DPR*VS,0,0);
 }
 let last=0,acc=0;
 function frame(t){

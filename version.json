@@ -1,4 +1,4 @@
 {
-  "version": "1.10.2",
-  "notes": "Phone fix: the tool strip was stretching the room wider than the screen, so the room sat off-center and Gloop could wander out of view. The room now fits the screen exactly, and Gloop and items are pulled back into view whenever the room changes size."
+  "version": "1.10.3",
+  "notes": "Phones: the tool area is now a short grid you scroll up and down to reach every tool, and it fits above the browser bar. On smaller screens the room is shown slightly zoomed out, so Gloop and items look smaller and there's more space to play."
 }
