@@ -176,7 +176,7 @@ const ICONS={
 const TOOLS=[
  {id:'hand',name:'Hand',price:0,hint:'Drag NAME around and fling. Hover slowly to pet.'},
  {id:'feather',name:'Feather',price:0,hint:'Wiggle over NAME to tickle. Tickles can pay coins.'},
- {id:'snack',name:'Snack',price:0,cost:2,hint:'Tap to drop a snack (2 coins), or drag the way you want to toss it and let go. Eating heals and cheers NAME up.'},
+ {id:'snack',name:'Snack',price:0,cost:2,hint:'Tap to drop a snack (2 coins), or drag the way you want to toss it and let go. NAME will try to catch it in midair for a bonus.'},
  {id:'pin',name:'Pin',price:0,hint:'Tap NAME to poke. It hurts.'},
  {id:'ball',name:'Ball',price:15,hint:'Tap to drop a ball, or drag the way you want to throw it and let go.'},
  {id:'paint',name:'Paint',price:20,hint:'Tap NAME to change color.'},
@@ -317,7 +317,10 @@ const DAILY=[
  {text:'Fling NAME hard 8 times',stat:'flings',goal:8},{text:'Trigger 2 item reactions',stat:'reactions',goal:2},
  {text:'Bonk NAME 10 times with the mallet',stat:'bonks',goal:10}
 ];
-let weather='clear',coldT=0,frozen=0;
+let weather='clear',coldT=0,frozen=0,catchCD=0,eagerT=0;
+LINES.catch=['Nice throw!','Got it! Mmm!','*CHOMP*','Again! Again!'];
+ACH.push({id:'catch',name:'Good catch',desc:'Toss snacks that NAME catches in midair 10 times',stat:'catches',goal:10,reward:20});
+STAT_LABELS.catches='Midair catches';
 // wave 3 state
 let cam={x:0,y:0,z:1},touches=new Map(),pinch=null,lp=null,paused=false,stickers=[],stickerKind='heart',musicAcc=0,musicStep=0;
 ICONS.pip='<circle cx="12" cy="14" r="7"/><path d="M12 7c0-3 2-4 4-4-0 2-1 4-4 4z"/><circle cx="10" cy="13" r="1"/><circle cx="14" cy="13" r="1"/>';
@@ -485,7 +488,7 @@ function syncBars(){
 }
 
 // ---------- updates from GitHub ----------
-const VERSION='1.7.0';
+const VERSION='1.7.1';
 const RAW='https://raw.githubusercontent.com/kefirman9000/gloop-box/main/';
 const newer=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return(x[i]||0)>(y[i]||0);}return false;};
 let updHtml=null,updUrl=null;
@@ -906,9 +909,21 @@ function think(dt){
     // waddle toward the nearest snack it can see
     if(!game&&!grab&&health>15){
       let best=null,bd=380;
-      for(const o of objs)if(o.type==='snack'&&!(grab&&grab.ref===o)){const d=Math.abs(o.x-c.x);if(d<bd){bd=d;best=o;}}
-      if(best){steer(best.x,dt);if(Math.random()<dt*.5)say('happy');}
+      // a snack in the air: run to where it will land and jump for it
+      const fly=objs.find(o=>o.type==='snack'&&o.thrown&&!(grab&&grab.ref===o));
+      if(fly&&frozen<=0&&!sleeping){
+        const path=predict(fly.x,fly.y,fly.x-fly.px,fly.y-fly.py,fly.r),land=path.length?path[path.length-1][0]:fly.x;
+        dash(land,5);eagerT=.3;
+        const above=gravSign>0?c.y-fly.y:fly.y-c.y,falling=(fly.y-fly.py)*gravSign>0;
+        if(grounded()&&catchCD<=0&&Math.abs(fly.x-c.x)<R*1.6&&above>R*.8&&above<260&&falling){
+          catchCD=.8;for(const q of allBody())impulse(q,Math.sign(fly.x-c.x)*.8,-3.3*gravSign);kick=.4;
+        }
+      }else{
+        for(const o of objs)if(o.type==='snack'&&!(grab&&grab.ref===o)){const d=Math.abs(o.x-c.x);if(d<bd){bd=d;best=o;}}
+        if(best){steer(best.x,dt);if(Math.random()<dt*.5)say('happy');}
+      }
     }
+    catchCD-=dt;eagerT-=dt;
     hopT-=dt;
     if(hopT<=0&&!game){
       hopT=1.6+Math.random()*(mood>70?2.5:5);
@@ -922,11 +937,16 @@ function think(dt){
         if(mood>75&&Math.random()<.4)say('happy');
       }else if(mood<25&&Math.random()<.5)say('sad');
     }
+    for(const o of objs)if(o.thrown&&o.type==='snack'&&(gravSign>0?o.y>=floorY()-o.r-1:o.y<=o.r+9))o.thrown=false;
     // eat snacks
     for(let i=objs.length-1;i>=0;i--){
       const o=objs[i];
       if(o.type==='snack'&&(o.touched||Math.hypot(o.x-c.x,o.y-c.y)<R+o.r+10)&&!(grab&&grab.ref===o)){
-        objs.splice(i,1);mood=Math.min(100,mood+12);health=Math.min(100,health+10);say('eat',true);sfx.nom();stat('snacks');trustAdd(2);hunger=Math.min(100,hunger+35);
+        objs.splice(i,1);mood=Math.min(100,mood+12);health=Math.min(100,health+10);sfx.nom();stat('snacks');trustAdd(2);hunger=Math.min(100,hunger+35);
+        const airborne=gravSign>0?o.y<floorY()-o.r-3:o.y>o.r+11;
+        if(o.thrown&&airborne){say('catch',true);mood=Math.min(100,mood+6);stat('catches');addCoins(2,o.x,o.y-30);wave=1;
+          parts.push({k:'txt',x:o.x,y:o.y-14,vx:0,vy:-60,t:1,text:'CATCH!',c:'#7ee0b5'});}
+        else say('eat',true);
         for(let k=0;k<6;k++)parts.push({k:'crumb',x:o.x,y:o.y,vx:(Math.random()-.5)*120,vy:-60-Math.random()*80,t:.6});
       }
     }
@@ -1409,6 +1429,7 @@ cv.addEventListener('pointermove',e=>{
   }
 });
 function release(e){
+  if(grab&&grab.type==='obj'&&grab.ref.type==='snack'&&Math.hypot(grab.ref.x-grab.ref.px,grab.ref.y-grab.ref.py)>1.5)grab.ref.thrown=true;
   if(e&&e.pointerType==='touch'){touches.delete(e.pointerId);if(touches.size<2&&pinch){pinch=null;ptr.down=false;return;}}
   if(lp&&lp.open){
     const list=radialTools(),dx=ptr.sx-lp.sx,dy=ptr.sy-lp.sy;
@@ -1421,7 +1442,7 @@ function release(e){
     const dx=ptr.x-aim.x,dy=ptr.y-aim.y,d=Math.hypot(dx,dy);
     if(aim.tool==='snack'){save.coins-=2;persist();}
     const o=spawn(aim.tool,d>10?ptr.x:aim.x,d>10?ptr.y:aim.y);
-    if(d>10){const v=throwVel(dx,dy);o.px=o.x-v.x;o.py=o.y-v.y;sfx.whoosh();}
+    if(d>10){const v=throwVel(dx,dy);o.px=o.x-v.x;o.py=o.y-v.y;o.thrown=true;sfx.whoosh();}
     aim=null;
   }
   if(grab&&(grab.type==='pt'||grab.type==='limb')&&Math.hypot(vPrev.x,vPrev.y)>12)stat('flings');
@@ -1610,7 +1631,7 @@ function drawBlob(){
   const my=c.y+12*sy;ctx.strokeStyle=ink;ctx.lineWidth=3;
   ctx.beginPath();
   if(ko>0){ctx.moveTo(c.x-6,my);ctx.lineTo(c.x+6,my);ctx.stroke();}
-  else if(game&&game.id==='rain'&&ko<=0&&hurtT<=0){ctx.fillStyle=shade(col,-.55);ctx.ellipse(c.x,my+3,9,8,0,0,7);ctx.fill();}
+  else if(((game&&game.id==='rain')||eagerT>0)&&ko<=0&&hurtT<=0){ctx.fillStyle=shade(col,-.55);ctx.ellipse(c.x,my+3,9,8,0,0,7);ctx.fill();}
   else if(hurtT>0||laughing){ctx.fillStyle=shade(col,-.55);ctx.ellipse(c.x,my+2,laughing?8:6,laughing?6:7,0,0,7);ctx.fill();}
   else if(mood>70){ctx.arc(c.x,my-4,10,.2*Math.PI,.8*Math.PI);ctx.stroke();}
   else if(mood>40){ctx.arc(c.x,my-3,7,.25*Math.PI,.75*Math.PI);ctx.stroke();}
